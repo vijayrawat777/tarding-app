@@ -1,0 +1,26 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.claude/agents
+/.vs
+/.vscode/tasks.json
+/Trading.API/bin/Debug/net9.0
+/Trading.API/obj
+/Trading.Application/bin/Debug/net9.0
+/Trading.Application/obj
+/Trading.Domain/bin/Debug/net9.0
+/Trading.Domain/obj
+/Trading.Domain.Tests/bin/Debug/net9.0
+/Trading.Domain.Tests/obj
+/Trading.Infrastructure/bin/Debug/net9.0
+/Trading.Infrastructure/obj
+/Trading.StrategyEngine/bin/Debug/net9.0
+/Trading.StrategyEngine/obj
+/Trading.UI/bin/Debug
+/Trading.UI/obj
+/temp-blazor-test/bin/Debug/net7.0
+/temp-blazor-test/obj
+/temp-blazor-test
+/Trading_UI/bin/Debug
+/Trading_UI/obj
