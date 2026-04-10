@@ -1,0 +1,284 @@
+﻿@page "/backtest"
+@rendermode InteractiveServer
+
+<PageTitle>Strategy Backtesting & Historical Analysis</PageTitle>
+
+<div class="container-fluid p-4" style="background: #0d1117; color: #e6edf3; min-height: 100vh;">
+    
+    <!-- HEADER -->
+    <div class="mb-4">
+        <h1 class="mb-3">
+            <span class="badge bg-warning">📈 Backtesting Engine</span>
+            <small>Test Strategies on Historical Data</small>
+        </h1>
+    </div>
+
+    <!-- BACKTEST CONTROLS -->
+    <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 20px; margin-bottom: 20px;">
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <label class="form-label">Stock Symbol</label>
+                <select class="form-select form-select-sm" @onchange="OnSymbolChange" style="background: #0d1117; color: #e6edf3; border-color: #30363d;">
+                    @foreach (var symbol in availableSymbols)
+                    {
+                        <option value="@symbol" selected="@(symbol == selectedSymbol)">@symbol</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Strategy</label>
+                <select class="form-select form-select-sm" @onchange="OnStrategyChange" style="background: #0d1117; color: #e6edf3; border-color: #30363d;">
+                    <option value="EMA">EMA Crossover</option>
+                    <option value="RSI">RSI Strategy</option>
+                    <option value="MACD">MACD Strategy</option>
+                    <option value="Custom">Custom Strategy</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Period (Days)</label>
+                <input type="number" class="form-control form-control-sm" @onchange="OnPeriodChange" min="30" max="365" value="@backtestDays" style="background: #0d1117; color: #e6edf3; border-color: #30363d;" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <button class="btn btn-sm btn-outline-warning w-100" @onclick="RunBacktest">▶️ Run Backtest</button>
+            </div>
+        </div>
+    </div>
+
+    @if (backtestResults != null)
+    {
+        <!-- RESULTS SUMMARY -->
+        <div class="row mb-4">
+            <div class="col-md-2">
+                <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 15px; text-align: center;">
+                    <small style="color: #8b949e;">Total Trades</small>
+                    <div class="h4" style="color: #58a6ff;">@backtestResults.TotalTrades</div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 15px; text-align: center;">
+                    <small style="color: #8b949e;">Win Rate</small>
+                    <div class="h4" style="color: @(backtestResults.WinRate >= 50 ? "#3fb950" : "#f85149");">@backtestResults.WinRate.ToString("F1")%</div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 15px; text-align: center;">
+                    <small style="color: #8b949e;">Total PnL</small>
+                    <div class="h4" style="color: @(backtestResults.TotalPnL >= 0 ? "#3fb950" : "#f85149");">@backtestResults.TotalPnL.ToString("F0")</div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 15px; text-align: center;">
+                    <small style="color: #8b949e;">Avg PnL/Trade</small>
+                    <div class="h4" style="color: @(backtestResults.AvgPnLPerTrade >= 0 ? "#3fb950" : "#f85149");">@backtestResults.AvgPnLPerTrade.ToString("F0")</div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 15px; text-align: center;">
+                    <small style="color: #8b949e;">Profit Factor</small>
+                    <div class="h4" style="color: @(backtestResults.ProfitFactor >= 1.5m ? "#3fb950" : "#f85149");">@backtestResults.ProfitFactor.ToString("F2")</div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 15px; text-align: center;">
+                    <small style="color: #8b949e;">Max Drawdown</small>
+                    <div class="h4" style="color: @(backtestResults.MaxDrawdown >= -20m ? "#3fb950" : "#f85149");">@backtestResults.MaxDrawdown.ToString("F1")%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TRADES TABLE -->
+        <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 20px; margin-bottom: 20px;">
+            <h6 class="mb-3">Trade-by-Trade Analysis</h6>
+            <div style="overflow-x: auto;">
+                <table class="table table-dark table-sm" style="margin-bottom: 0; font-size: 12px;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid #30363d;">
+                            <th style="color: #8b949e; font-weight: normal;">Trade #</th>
+                            <th style="color: #8b949e; font-weight: normal;">Entry Date</th>
+                            <th style="color: #8b949e; font-weight: normal;">Entry Price</th>
+                            <th style="color: #8b949e; font-weight: normal;">Exit Date</th>
+                            <th style="color: #8b949e; font-weight: normal;">Exit Price</th>
+                            <th style="color: #8b949e; font-weight: normal;">PnL</th>
+                            <th style="color: #8b949e; font-weight: normal;">PnL %</th>
+                            <th style="color: #8b949e; font-weight: normal;">Days Held</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            int tradeNum = 1;
+                            foreach (var trade in backtestResults.Trades)
+                            {
+                                var isProfit = trade.PnL >= 0;
+                                var daysHeld = trade.ExitTime.HasValue ? (trade.ExitTime.Value - trade.EntryTime).Days : 0;
+                                <tr style="border-bottom: 1px solid #30363d;">
+                                    <td>#@tradeNum</td>
+                                    <td>@trade.EntryTime.ToString("dd-MMM")</td>
+                                    <td style="color: #58a6ff;">@trade.EntryPrice.ToString("F2")</td>
+                                    <td>@trade.ExitTime?.ToString("dd-MMM")</td>
+                                    <td style="color: @(isProfit ? "#3fb950" : "#f85149");">@trade.ExitPrice?.ToString("F2")</td>
+                                    <td style="color: @(isProfit ? "#3fb950" : "#f85149"); font-weight: bold;">@trade.PnL.ToString("+0.00;-0.00")</td>
+                                    <td style="color: @(isProfit ? "#3fb950" : "#f85149");">@trade.PnLPercent.ToString("+0.00;-0.00")%</td>
+                                    <td>@daysHeld</td>
+                                </tr>
+                                tradeNum++;
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- EQUITY CURVE CHART PLACEHOLDER -->
+        <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 20px;">
+            <h6 class="mb-3">Equity Curve (Chart will be added with TradingView integration)</h6>
+            <div style="height: 300px; background: #0d1117; border: 1px dashed #30363d; display: flex; align-items: center; justify-content: center; border-radius: 6px;">
+                <small style="color: #8b949e;">📊 Chart Integration Coming Soon - Use TradingView/ChartJS Library</small>
+            </div>
+        </div>
+    }
+    else if (backtestRunning)
+    {
+        <div class="alert alert-info">
+            ⏳ Running backtest on @backtestDays days of data... Please wait.
+        </div>
+    }
+</div>
+
+@code {
+    private List<string> availableSymbols = new()
+    {
+        "RELIANCE", "INFY", "TCS", "HDFCBANK", "HDFC", "LT", "BAJAJFINSV", "ITC", "MARUTI", "SBIN",
+        "WIPRO", "TECHM", "ASIANPAINT", "SUNPHARMA", "AXISBANK", "ICICIBANK", "INDIGO", "KOTAKBANK",
+        "MINDTREE", "DATAENTRY"
+    };
+
+    private string selectedSymbol = "RELIANCE";
+    private string selectedStrategy = "EMA";
+    private int backtestDays = 90;
+    private bool backtestRunning = false;
+    private BacktestResultsSummary? backtestResults;
+
+    private void OnSymbolChange(ChangeEventArgs e)
+    {
+        selectedSymbol = e.Value?.ToString() ?? "RELIANCE";
+    }
+
+    private void OnStrategyChange(ChangeEventArgs e)
+    {
+        selectedStrategy = e.Value?.ToString() ?? "EMA";
+    }
+
+    private void OnPeriodChange(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int days))
+        {
+            backtestDays = Math.Clamp(days, 30, 365);
+        }
+    }
+
+    private async Task RunBacktest()
+    {
+        backtestRunning = true;
+        backtestResults = null;
+
+        await Task.Delay(500); // Simulate processing
+
+        // Generate dummy backtest results
+        var random = new Random((selectedSymbol + selectedStrategy).GetHashCode());
+        var trades = new List<BacktestTrade>();
+        var tradeCount = random.Next(5, 15);
+
+        for (int i = 0; i < tradeCount; i++)
+        {
+            var entryPrice = GetBasePrice(selectedSymbol) + (decimal)(random.NextDouble() - 0.5) * 100m;
+            var pnlPercent = selectedStrategy switch
+            {
+                "EMA" => (decimal)(random.NextDouble() - 0.45) * 8m,
+                "RSI" => (decimal)(random.NextDouble() - 0.40) * 6m,
+                "MACD" => (decimal)(random.NextDouble() - 0.48) * 5m,
+                _ => (decimal)(random.NextDouble() - 0.45) * 7m
+            };
+            var exitPrice = entryPrice * (1m + pnlPercent / 100m);
+
+            trades.Add(new BacktestTrade
+            {
+                EntryTime = DateTime.Now.AddDays(-backtestDays + (i * 10)),
+                EntryPrice = entryPrice,
+                ExitTime = DateTime.Now.AddDays(-backtestDays + (i * 10) + random.Next(1, 15)),
+                ExitPrice = exitPrice,
+                PnL = (exitPrice - entryPrice) * 100m,
+                PnLPercent = pnlPercent
+            });
+        }
+
+        var winCount = trades.Count(t => t.PnL >= 0);
+        var totalPnL = trades.Sum(t => t.PnL);
+        var winPnL = trades.Where(t => t.PnL >= 0).Sum(t => t.PnL);
+        var lossPnL = Math.Abs(trades.Where(t => t.PnL < 0).Sum(t => t.PnL));
+
+        backtestResults = new BacktestResultsSummary
+        {
+            TotalTrades = trades.Count,
+            WinningTrades = winCount,
+            LosingTrades = trades.Count - winCount,
+            WinRate = (decimal)winCount / trades.Count * 100m,
+            TotalPnL = totalPnL,
+            AvgPnLPerTrade = totalPnL / trades.Count,
+            ProfitFactor = lossPnL > 0 ? winPnL / lossPnL : winPnL > 0 ? 999m : 0m,
+            MaxDrawdown = -(decimal)(random.NextDouble() * 15.0),
+            Trades = trades
+        };
+
+        backtestRunning = false;
+    }
+
+    private decimal GetBasePrice(string symbol) => symbol switch
+    {
+        "RELIANCE" => 2850m,
+        "INFY" => 2350m,
+        "TCS" => 3950m,
+        "HDFCBANK" => 1850m,
+        "HDFC" => 2650m,
+        "LT" => 3120m,
+        "BAJAJFINSV" => 14200m,
+        "ITC" => 420m,
+        "MARUTI" => 9850m,
+        "SBIN" => 730m,
+        "WIPRO" => 480m,
+        "TECHM" => 1425m,
+        "ASIANPAINT" => 3280m,
+        "SUNPHARMA" => 1680m,
+        "AXISBANK" => 1125m,
+        "ICICIBANK" => 1050m,
+        "INDIGO" => 3150m,
+        "KOTAKBANK" => 1875m,
+        "MINDTREE" => 3580m,
+        "DATAENTRY" => 2450m,
+        _ => 2500m
+    };
+
+    private class BacktestTrade
+    {
+        public DateTime EntryTime { get; set; }
+        public decimal EntryPrice { get; set; }
+        public DateTime? ExitTime { get; set; }
+        public decimal? ExitPrice { get; set; }
+        public decimal PnL { get; set; }
+        public decimal PnLPercent { get; set; }
+    }
+
+    private class BacktestResultsSummary
+    {
+        public int TotalTrades { get; set; }
+        public int WinningTrades { get; set; }
+        public int LosingTrades { get; set; }
+        public decimal WinRate { get; set; }
+        public decimal TotalPnL { get; set; }
+        public decimal AvgPnLPerTrade { get; set; }
+        public decimal ProfitFactor { get; set; }
+        public decimal MaxDrawdown { get; set; }
+        public List<BacktestTrade> Trades { get; set; } = new();
+    }
+}
+

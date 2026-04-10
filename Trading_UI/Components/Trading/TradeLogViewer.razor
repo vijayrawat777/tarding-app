@@ -1,0 +1,140 @@
+﻿@page "/trade-logs"
+@using System.Collections.Generic
+@inject HttpClient Http
+@implements IAsyncDisposable
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Trade & Order Logs</h5>
+                    <button class="btn btn-sm btn-success" @onclick="RefreshLogs">
+                        <span class="oi oi-reload"></span> Refresh
+                    </button>
+                </div>
+                <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                    @if (logs == null)
+                    {
+                        <p><em>Loading logs...</em></p>
+                    }
+                    else if (logs.Count == 0)
+                    {
+                        <p class="text-muted">No logs yet.</p>
+                    }
+                    else
+                    {
+                        <table class="table table-sm table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Type</th>
+                                    <th>Title</th>
+                                    <th>Description</th>
+                                    <th>Symbol</th>
+                                    <th>Price</th>
+                                    <th>Qty</th>
+                                    <th>PnL</th>
+                                    <th>Strategy</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var log in logs)
+                                {
+                                    <tr class="@GetLogRowClass(log.Severity)">
+                                        <td>@log.CreatedAt.ToString("HH:mm:ss")</td>
+                                        <td>
+                                            <span class="badge @GetBadgeClass(log.Type)">@log.Type</span>
+                                        </td>
+                                        <td><strong>@log.Title</strong></td>
+                                        <td>@log.Description</td>
+                                        <td>@log.Symbol</td>
+                                        <td>@log.Price?.ToString("F2")</td>
+                                        <td>@log.Quantity?.ToString("F0")</td>
+                                        <td class="@GetPnLClass(log.PnL)">
+                                            <strong>@log.PnL?.ToString("F2")</strong>
+                                        </td>
+                                        <td>@log.StrategyName</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<TradeLogDto> logs = new();
+    private System.Threading.Timer timer;
+
+    private class TradeLogDto
+    {
+        public string Id { get; set; }
+        public string Type { get; set; }
+        public string Title { get; set; }
+        public string Description { get; set; }
+        public string TradeId { get; set; }
+        public string OrderId { get; set; }
+        public string StrategyName { get; set; }
+        public string Symbol { get; set; }
+        public decimal? Price { get; set; }
+        public decimal? Quantity { get; set; }
+        public decimal? PnL { get; set; }
+        public string Details { get; set; }
+        public string Severity { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshLogs();
+        timer = new System.Threading.Timer(async _ => 
+        {
+            await RefreshLogs();
+            await InvokeAsync(StateHasChanged);
+        }, null, System.TimeSpan.Zero, System.TimeSpan.FromSeconds(2));
+    }
+
+    private async Task RefreshLogs()
+    {
+        try
+        {
+            logs = await Http.GetFromJsonAsync<List<TradeLogDto>>("http://localhost:5000/api/trading/logs?limit=50") ?? new();
+        }
+        catch { }
+    }
+
+    private string GetLogRowClass(string severity) => severity switch
+    {
+        "Error" => "table-danger",
+        "Warning" => "table-warning",
+        _ => ""
+    };
+
+    private string GetBadgeClass(string type) => type switch
+    {
+        "TradeOpened" => "bg-success",
+        "TradeClosed" => "bg-info",
+        "OrderPlaced" => "bg-primary",
+        "StopLossTriggered" => "bg-warning",
+        "TakeProfitTriggered" => "bg-info",
+        "AutoTradingStarted" => "bg-success",
+        "AutoTradingStopped" => "bg-secondary",
+        _ => "bg-secondary"
+    };
+
+    private string GetPnLClass(decimal? pnl) => pnl switch
+    {
+        > 0 => "text-success",
+        < 0 => "text-danger",
+        _ => "text-muted"
+    };
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        timer?.Dispose();
+    }
+}

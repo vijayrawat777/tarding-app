@@ -1,0 +1,169 @@
+﻿@using System.Collections.Generic
+@inject HttpClient Http
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Automated Trading Control</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <label class="form-label"><strong>Select Strategy</strong></label>
+                <select class="form-select" @bind="selectedStrategy" disabled="@isRunning">
+                    <option value="">-- Choose Strategy --</option>
+                    <option value="EMA">EMA Crossover</option>
+                    <option value="RSI">RSI Strategy</option>
+                    <option value="MACD">MACD Strategy</option>
+                    <option value="Custom">Custom Strategy</option>
+                </select>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label"><strong>Status</strong></label>
+                <div class="d-flex gap-2">
+                    <button class="btn @(isRunning ? "btn-danger" : "btn-success") flex-grow-1" 
+                            @onclick="ToggleAutoTrading">
+                        <span class="oi @(isRunning ? "oi-media-stop" : "oi-media-play")"></span>
+                        @(isRunning ? "STOP Trading" : "START Trading")
+                    </button>
+                    <button class="btn btn-info" @onclick="RefreshStatus">
+                        <span class="oi oi-reload"></span>
+                    </button>
+                </div>
+                <div class="mt-2">
+                    <small>
+                        <strong>Running:</strong> <span class="@(isRunning ? "text-success" : "text-danger")">@(isRunning ? "YES" : "NO")</span><br/>
+                        <strong>Strategy:</strong> <span>@currentStrategy</span>
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <hr/>
+
+        <h6 class="mt-3">Auto Trading Parameters</h6>
+        <div class="row">
+            <div class="col-md-4">
+                <label class="form-label">Stop Loss %</label>
+                <input type="number" class="form-control" @bind="stopLossPercent" step="0.1" disabled="@isRunning">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Take Profit %</label>
+                <input type="number" class="form-control" @bind="takeProfitPercent" step="0.1" disabled="@isRunning">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Max Concurrent Trades</label>
+                <input type="number" class="form-control" @bind="maxConcurrentTrades" disabled="@isRunning">
+            </div>
+        </div>
+
+        <div class="row mt-2">
+            <div class="col-md-4">
+                <label class="form-label">Execution Interval (sec)</label>
+                <input type="number" class="form-control" @bind="executionInterval" disabled="@isRunning">
+            </div>
+            <div class="col-md-8 d-flex align-items-end">
+                <button class="btn btn-primary w-100" @onclick="SaveParameters" disabled="@isRunning">
+                    Save Parameters
+                </button>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(message))
+        {
+            <div class="alert @(isError ? "alert-danger" : "alert-success") mt-3">
+                @message
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string selectedStrategy = "";
+    private string currentStrategy = "";
+    private bool isRunning = false;
+    private string message = "";
+    private bool isError = false;
+    
+    private decimal stopLossPercent = 2;
+    private decimal takeProfitPercent = 5;
+    private int maxConcurrentTrades = 5;
+    private int executionInterval = 60;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshStatus();
+    }
+
+    private string baseApiUrl = "http://localhost:5106";
+
+    private async Task ToggleAutoTrading()
+    {
+        try
+        {
+            if (isRunning)
+            {
+                await Http.PostAsJsonAsync(baseApiUrl + "/api/trading/auto-trading/stop", new { });
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(selectedStrategy))
+                {
+                    message = "Please select a strategy first";
+                    isError = true;
+                    return;
+                }
+                await Http.PostAsJsonAsync(baseApiUrl + "/api/trading/auto-trading/start",
+                    new { strategyName = selectedStrategy });
+                currentStrategy = selectedStrategy;
+            }
+            await RefreshStatus();
+            message = isRunning ? "Auto trading stopped" : "Auto trading started";
+            isError = false;
+        }
+        catch (Exception ex)
+        {
+            message = "Error: " + ex.Message;
+            isError = true;
+        }
+    }
+
+    private async Task RefreshStatus()
+    {
+        try
+        {
+            var status = await Http.GetFromJsonAsync<StatusResponse>(
+                baseApiUrl + "/api/trading/auto-trading/status");
+            isRunning = status?.IsRunning ?? false;
+            currentStrategy = status?.CurrentStrategy ?? "";
+        }
+        catch { }
+    }
+
+    private async Task SaveParameters()
+    {
+        try
+        {
+            await Http.PostAsJsonAsync(baseApiUrl + "/api/trading/auto-trading/parameters", 
+                new {
+                    stopLossPercent,
+                    takeProfitPercent,
+                    maxConcurrentTrades,
+                    executionIntervalSeconds = executionInterval
+                });
+            message = "Parameters saved";
+            isError = false;
+        }
+        catch (Exception ex)
+        {
+            message = "Error: " + ex.Message;
+            isError = true;
+        }
+    }
+
+    public class StatusResponse
+    {
+        public bool IsRunning { get; set; }
+        public string CurrentStrategy { get; set; }
+    }
+}

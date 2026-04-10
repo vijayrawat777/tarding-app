@@ -1,0 +1,164 @@
+﻿@using System.Collections.Generic
+@inject HttpClient Http
+
+<div class="card">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0">Place Order / Manual Trade</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <label class="form-label"><strong>Symbol</strong></label>
+                <input type="text" class="form-control" @bind="symbol" placeholder="e.g., RELIANCE, TCS">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label"><strong>Option Symbol</strong></label>
+                <input type="text" class="form-control" @bind="optionSymbol" placeholder="e.g., RELIANCE22000CE">
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-md-3">
+                <label class="form-label"><strong>Side</strong></label>
+                <select class="form-select" @bind="side">
+                    <option value="Buy">Buy</option>
+                    <option value="Sell">Sell</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label"><strong>Type</strong></label>
+                <select class="form-select" @bind="orderType">
+                    <option value="Market">Market</option>
+                    <option value="Limit">Limit</option>
+                    <option value="Stop">Stop</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label"><strong>Quantity</strong></label>
+                <input type="number" class="form-control" @bind="quantity" placeholder="1">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label"><strong>Price</strong></label>
+                <input type="number" class="form-control" @bind="price" placeholder="100" step="0.01">
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <label class="form-label"><strong>Strategy (Optional)</strong></label>
+                <select class="form-select" @bind="selectedStrategy">
+                    <option value="Manual">Manual (Direct Buy/Sell)</option>
+                    <option value="EMA">EMA Crossover</option>
+                    <option value="RSI">RSI Strategy</option>
+                    <option value="MACD">MACD Strategy</option>
+                    <option value="Custom">Custom Strategy</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label"><strong>Is Option Trade?</strong></label>
+                <div class="form-check mt-2">
+                    <input class="form-check-input" type="checkbox" id="optionCheck" @bind="isOptionTrade">
+                    <label class="form-check-label" for="optionCheck">
+                        Yes, this is an option
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-12">
+                <label class="form-label"><strong>Notes</strong></label>
+                <input type="text" class="form-control" @bind="notes" placeholder="Optional notes">
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <button class="btn btn-primary w-100 btn-lg" @onclick="PlaceOrder">
+                    <span class="oi oi-check"></span> Place Order
+                </button>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(message))
+        {
+            <div class="alert @(isError ? "alert-danger" : "alert-success") mt-3">
+                @message
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string symbol = "";
+    private string optionSymbol = "";
+    private string side = "Buy";
+    private string orderType = "Market";
+    private decimal quantity = 1;
+    private decimal price = 100;
+    private string selectedStrategy = "Manual";
+    private bool isOptionTrade = false;
+    private string notes = "";
+    private string message = "";
+    private bool isError = false;
+
+    private async Task PlaceOrder()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(symbol))
+            {
+                message = "Please enter symbol";
+                isError = true;
+                return;
+            }
+
+            var request = new
+            {
+                underlyingSymbol = symbol,
+                optionSymbol = optionSymbol ?? symbol,
+                isOptionTrade,
+                side,
+                type = orderType,
+                quantity,
+                price,
+                strategyName = selectedStrategy,
+                strategyType = selectedStrategy,
+                notes
+            };
+
+            var response = await Http.PostAsJsonAsync(
+                "http://localhost:5000/api/trading/orders/place", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                message = "Order placed successfully!";
+                isError = false;
+                ResetForm();
+            }
+            else
+            {
+                message = "Failed to place order";
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = "Error: " + ex.Message;
+            isError = true;
+        }
+    }
+
+    private void ResetForm()
+    {
+        symbol = "";
+        optionSymbol = "";
+        side = "Buy";
+        orderType = "Market";
+        quantity = 1;
+        price = 100;
+        selectedStrategy = "Manual";
+        isOptionTrade = false;
+        notes = "";
+    }
+}

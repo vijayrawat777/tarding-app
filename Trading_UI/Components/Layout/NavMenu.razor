@@ -1,17 +1,29 @@
 ﻿<div class="top-navbar">
     <div class="navbar-content">
-        <a class="navbar-brand" href="">Trading_UI</a>
+        <a class="navbar-brand" href="">📊 Algo Trading</a>
 
         <nav class="navbar-menu">
             <div class="nav-item">
                 <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                    <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                    <span class="bi bi-house-door-fill" aria-hidden="true"></span> Home
+                </NavLink>
+            </div>
+
+            <div class="nav-item">
+                <NavLink class="nav-link" href="trading-dashboard">
+                    <span class="bi bi-graph-up" aria-hidden="true"></span> Trading Dashboard
                 </NavLink>
             </div>
 
             <div class="nav-item">
                 <NavLink class="nav-link" href="option-chain">
-                    <span class="bi bi-graph-up-nav-menu" aria-hidden="true"></span> Option Chain
+                    <span class="bi bi-lightning-fill" aria-hidden="true"></span> Option Chain
+                </NavLink>
+            </div>
+
+            <div class="nav-item">
+                <NavLink class="nav-link" href="backtest">
+                    <span class="bi bi-clock-history" aria-hidden="true"></span> Backtest
                 </NavLink>
             </div>
         </nav>
@@ -20,3 +32,76 @@
     </div>
 </div>
 
+<style>
+    .top-navbar {
+        background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
+        border-bottom: 2px solid #30363d;
+        padding: 0;
+    }
+
+    .navbar-content {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        max-width: 100%;
+    }
+
+    .navbar-brand {
+        color: #58a6ff;
+        font-weight: bold;
+        font-size: 1.25rem;
+        margin-right: 2rem;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .navbar-brand:hover {
+        color: #79c0ff;
+    }
+
+    .navbar-menu {
+        display: flex;
+        gap: 1rem;
+        flex: 1;
+        flex-wrap: wrap;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+    }
+
+    .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #8b949e;
+        text-decoration: none;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        border: 1px solid transparent;
+        transition: all 0.2s;
+        font-size: 0.95rem;
+        font-weight: 500;
+    }
+
+    .nav-link:hover {
+        color: #e6edf3;
+        background-color: #1c2128;
+        border-color: #30363d;
+    }
+
+    .nav-link.active {
+        color: #58a6ff;
+        background-color: #0d47a1;
+        border-color: #1f6feb;
+    }
+
+    .navbar-toggler {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        cursor: pointer;
+        display: none;
+    }
+</style>

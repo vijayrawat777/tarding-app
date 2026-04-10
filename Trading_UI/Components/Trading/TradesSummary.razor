@@ -1,0 +1,105 @@
+﻿@using System.Collections.Generic
+@inject HttpClient Http
+@implements IAsyncDisposable
+
+<div class="card">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">Trading Summary & Dashboard</h5>
+    </div>
+    <div class="card-body">
+        @if (summary == null)
+        {
+            <p><em>Loading...</em></p>
+        }
+        else
+        {
+            <div class="row text-center">
+                <div class="col-md-3">
+                    <div class="card border-success mb-3">
+                        <div class="card-body">
+                            <h3 class="card-title">Total PnL</h3>
+                            <p class="card-text @GetPnLClass(summary.TotalPnL)">
+                                <strong>@summary.TotalPnL.ToString("F2")</strong>
+                            </p>
+                            <small class="@GetPnLClass(summary.TotalPnLPercent)">
+                                @summary.TotalPnLPercent.ToString("F2")%
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card border-primary mb-3">
+                        <div class="card-body">
+                            <h3 class="card-title">Total Trades</h3>
+                            <p class="card-text"><strong>@summary.TotalTrades</strong></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card border-warning mb-3">
+                        <div class="card-body">
+                            <h3 class="card-title">Open Trades</h3>
+                            <p class="card-text"><strong>@summary.OpenTrades</strong></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card border-danger mb-3">
+                        <div class="card-body">
+                            <h3 class="card-title">Win Rate</h3>
+                            <p class="card-text"><strong>@(summary.TotalTrades > 0 ? (summary.OpenTrades > 0 ? ((summary.TotalTrades - summary.OpenTrades) * 100 / summary.TotalTrades).ToString("F1") : "100") : "0")%</strong></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private SummaryResponse summary;
+    private System.Threading.Timer timer;
+
+    private class SummaryResponse
+    {
+        public int TotalTrades { get; set; }
+        public int OpenTrades { get; set; }
+        public decimal TotalPnL { get; set; }
+        public decimal TotalPnLPercent { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshSummary();
+        timer = new System.Threading.Timer(async _ =>
+        {
+            await RefreshSummary();
+            await InvokeAsync(StateHasChanged);
+        }, null, System.TimeSpan.Zero, System.TimeSpan.FromSeconds(5));
+    }
+
+    private async Task RefreshSummary()
+    {
+        try
+        {
+            summary = await Http.GetFromJsonAsync<SummaryResponse>(
+                "http://localhost:5000/api/trading/trades/summary");
+        }
+        catch { }
+    }
+
+    private string GetPnLClass(decimal value) => value switch
+    {
+        > 0 => "text-success",
+        < 0 => "text-danger",
+        _ => "text-muted"
+    };
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        timer?.Dispose();
+    }
+}

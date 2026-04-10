@@ -1,8 +1,10 @@
-using Trading_UI.Components;
+﻿using Trading_UI.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("http://localhost:5000") });
+
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
@@ -25,3 +27,4 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
+

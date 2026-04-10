@@ -1,0 +1,487 @@
+﻿@page "/trading-dashboard"
+@page "/trading"
+@rendermode InteractiveServer
+@using global::Trading.Application.DTOs
+@using Trading_UI.Components.Trading
+
+<PageTitle>Algo Trading System - Options & Stock Analysis</PageTitle>
+
+<div class="container-fluid p-4" style="background: #0d1117; color: #e6edf3; min-height: 100vh;">
+    
+    <!-- HEADER -->
+    <div class="mb-4">
+        <h1 class="mb-3">
+            <span class="badge bg-success">📊 Algo Trading System</span>
+            <small>Real-time Options & Stock Analysis</small>
+        </h1>
+        <div style="color: #8b949e; font-size: 12px;">
+            📍 <a href="/backtest" style="color: #58a6ff; text-decoration: none;">Strategy Backtesting</a> | 
+            <a href="/option-chain" style="color: #58a6ff; text-decoration: none;">Option Chain Data</a>
+        </div>
+    </div>
+
+    <!-- TRADING SUMMARY METRICS -->
+    <div class="mb-4">
+        <TradesSummary />
+    </div>
+
+    <!-- TWO COLUMN LAYOUT: Strategies + Controls -->
+    <div class="row mb-4">
+        <!-- LEFT: STRATEGIES & ANALYSIS -->
+        <div class="col-lg-4">
+            <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 20px;">
+                <h5 class="mb-3">🎯 Trading Strategies</h5>
+                
+                <div class="mb-3">
+                    <label class="form-label">Market View</label>
+                    <select class="form-select form-select-sm" @onchange="OnStrategyViewChanged" style="background: #0d1117; color: #e6edf3; border-color: #30363d;">
+                        <option value="bullish">📈 Bullish</option>
+                        <option value="bearish">📉 Bearish</option>
+                        <option value="neutral">➡️ Neutral</option>
+                    </select>
+                </div>
+
+                <div class="row g-2">
+                    @foreach (var strategy in GetStrategiesForView(selectedStrategyView).Take(3))
+                    {
+                        var isSelected = selectedStrategy == strategy.Code;
+                        <div class="col-12">
+                            <div 
+                                class="p-3" 
+                                style="background: @(isSelected ? "#238636" : "#0d1117"); border: 1px solid #30363d; border-radius: 6px; cursor: pointer;" 
+                                @onclick="@(() => SelectStrategy(strategy))">
+                                <div class="mb-2"><strong>@strategy.Icon @strategy.Name</strong></div>
+                                <small style="color: #8b949e;">@strategy.Description</small>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- CENTER: AUTOMATED TRADING CONTROL -->
+        <div class="col-lg-4">
+            <AutomatedTradingControl />
+        </div>
+
+        <!-- RIGHT: PLACE ORDER -->
+        <div class="col-lg-4">
+            <PlaceOrderDialog />
+        </div>
+    </div>
+
+    <!-- OPTION CHAIN ANALYSIS -->
+    <div class="mb-4">
+        <div style="background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 20px;">
+            <h5 class="mb-3">📊 Option Chain Analysis</h5>
+            
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Select Stock</label>
+                    <select class="form-select form-select-sm" @onchange="OnSymbolChanged" style="background: #0d1117; color: #e6edf3; border-color: #30363d;">
+                        <option value="">Select...</option>
+                        @foreach (var symbol in availableSymbols)
+                        {
+                            <option value="@symbol" selected="@(symbol == selectedSymbol)">@symbol</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Expiry Date</label>
+                    <select class="form-select form-select-sm" @onchange="OnExpiryChanged" style="background: #0d1117; color: #e6edf3; border-color: #30363d;">
+                        @foreach (var expiry in availableExpiries)
+                        {
+                            <option value="@expiry.ToString("yyyy-MM-dd")" selected="@(expiry.Date == selectedExpiry.Date)">
+                                @expiry.ToString("dd MMM yyyy")
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <button class="btn btn-sm btn-outline-success w-100" @onclick="HandleRefresh">🔄 Refresh Data</button>
+                </div>
+            </div>
+
+            @if (optionChainData != null)
+            {
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <div class="p-2" style="background: #0d1117; border-radius: 6px;">
+                            <small style="color: #8b949e;">Stock Price</small>
+                            <div class="h5" style="color: #58a6ff;">$@optionChainData.UnderlyingPrice.ToString("F2")</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-2" style="background: #0d1117; border-radius: 6px;">
+                            <small style="color: #8b949e;">Change</small>
+                            <div class="h5" style="color: @(optionChainData.UnderlyingChange >= 0 ? "#3fb950" : "#f85149");">
+                                @optionChainData.UnderlyingChange.ToString("+0.00;-0.00")
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-2" style="background: #0d1117; border-radius: 6px;">
+                            <small style="color: #8b949e;">% Change</small>
+                            <div class="h5" style="color: @(optionChainData.UnderlyingChangePercent >= 0 ? "#3fb950" : "#f85149");">
+                                @optionChainData.UnderlyingChangePercent.ToString("+0.00;-0.00")%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-2" style="background: #0d1117; border-radius: 6px;">
+                            <small style="color: #8b949e;">Expiry</small>
+                            <div class="h5">@optionChainData.ExpiryDate.ToString("dd MMM")</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CALLS & PUTS COMPARISON -->
+                <div class="row">
+                    <div class="col-lg-6">
+                        <h6 style="color: #3fb950;">📈 CALLS (Buy Calls / Sell Puts)</h6>
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            <table class="table table-sm table-dark" style="font-size: 12px;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid #30363d;">
+                                        <th style="color: #8b949e; font-weight: normal;">Strike</th>
+                                        <th style="color: #8b949e; font-weight: normal;">LTP</th>
+                                        <th style="color: #8b949e; font-weight: normal;">Bid/Ask</th>
+                                        <th style="color: #8b949e; font-weight: normal;">IV</th>
+                                        <th style="color: #8b949e; font-weight: normal;">OI</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var call in optionChainData.Calls.OrderBy(c => c.StrikePrice))
+                                    {
+                                        var isTM = call.StrikePrice == optionChainData.UnderlyingPrice;
+                                        var isITM = call.StrikePrice < optionChainData.UnderlyingPrice;
+                                        <tr style="background: @(isTM ? "#161b22" : "transparent"); border-bottom: 1px solid #30363d; cursor: pointer;" @onclick="@(() => ShowBuyModal(call))">
+                                            <td style="color: @(isTM ? "#58a6ff" : "#e6edf3"); font-weight: @(isTM ? "bold" : "normal");">@call.StrikePrice.ToString("F0")</td>
+                                            <td style="color: #3fb950;">@call.LastTradedPrice.ToString("F2")</td>
+                                            <td style="font-size: 11px; color: #8b949e;">@call.BidPrice.ToString("F2")/@call.AskPrice.ToString("F2")</td>
+                                            <td style="color: #d29922;">@call.ImpliedVolatility?.ToString("F2")%</td>
+                                            <td style="color: #8b949e;">@(call.OpenInterest / 1000)K</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <h6 style="color: #f85149;">📉 PUTS (Buy Puts / Sell Calls)</h6>
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            <table class="table table-sm table-dark" style="font-size: 12px;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid #30363d;">
+                                        <th style="color: #8b949e; font-weight: normal;">Strike</th>
+                                        <th style="color: #8b949e; font-weight: normal;">LTP</th>
+                                        <th style="color: #8b949e; font-weight: normal;">Bid/Ask</th>
+                                        <th style="color: #8b949e; font-weight: normal;">IV</th>
+                                        <th style="color: #8b949e; font-weight: normal;">OI</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var put in optionChainData.Puts.OrderByDescending(p => p.StrikePrice))
+                                    {
+                                        var isTM = put.StrikePrice == optionChainData.UnderlyingPrice;
+                                        var isITM = put.StrikePrice > optionChainData.UnderlyingPrice;
+                                        <tr style="background: @(isTM ? "#161b22" : "transparent"); border-bottom: 1px solid #30363d; cursor: pointer;" @onclick="@(() => ShowSellModal(put))">
+                                            <td style="color: @(isTM ? "#58a6ff" : "#e6edf3"); font-weight: @(isTM ? "bold" : "normal");">@put.StrikePrice.ToString("F0")</td>
+                                            <td style="color: #f85149;">@put.LastTradedPrice.ToString("F2")</td>
+                                            <td style="font-size: 11px; color: #8b949e;">@put.BidPrice.ToString("F2")/@put.AskPrice.ToString("F2")</td>
+                                            <td style="color: #d29922;">@put.ImpliedVolatility?.ToString("F2")%</td>
+                                            <td style="color: #8b949e;">@(put.OpenInterest / 1000)K</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- TRADE LOGS -->
+    <div class="mb-4">
+        <TradeLogViewer />
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="text-muted text-center mt-5 mb-3">
+        <small>Algo Trading Platform | Real-time Options Analysis | Paper Trading Enabled</small>
+    </footer>
+</div>
+
+<style>
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #0d1117;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #30363d;
+        border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #484f58;
+    }
+</style>
+
+@code {
+    private string selectedSymbol = "RELIANCE";
+    private DateTime selectedExpiry = DateTime.Now.AddDays(7);
+    private OptionChainDto? optionChainData;
+    private string selectedStrategyView = "bullish";
+    private string? selectedStrategy;
+    private StrategyInfo? currentStrategy;
+
+    private List<string> availableSymbols = new()
+    {
+        "RELIANCE", "INFY", "TCS", "HDFCBANK", "HDFC", "LT", "BAJAJFINSV", "ITC", "MARUTI", "SBIN",
+        "WIPRO", "TECHM", "ASIANPAINT", "SUNPHARMA", "AXISBANK", "ICICIBANK", "INDIGO", "KOTAKBANK",
+        "MINDTREE", "DATAENTRY"
+    };
+
+    private List<DateTime> availableExpiries = new();
+
+    protected override void OnInitialized()
+    {
+        availableExpiries = new()
+        {
+            DateTime.Now.AddDays(7),      // Weekly
+            DateTime.Now.AddDays(14),     // 2 weeks
+            DateTime.Now.AddDays(21),     // 3 weeks
+            DateTime.Now.AddMonths(1),    // Monthly
+            DateTime.Now.AddMonths(2),    // 2 months
+        };
+
+        selectedExpiry = availableExpiries[0];
+        GenerateDummyOptionChain();
+    }
+
+    private void GenerateDummyOptionChain()
+    {
+        if (selectedSymbol == null) return;
+
+        // Realistic base prices for Indian stocks
+        var basePrice = selectedSymbol switch
+        {
+            "RELIANCE" => 2850m,
+            "INFY" => 2350m,
+            "TCS" => 3950m,
+            "HDFCBANK" => 1850m,
+            "HDFC" => 2650m,
+            "LT" => 3120m,
+            "BAJAJFINSV" => 14200m,
+            "ITC" => 420m,
+            "MARUTI" => 9850m,
+            "SBIN" => 730m,
+            "WIPRO" => 480m,
+            "TECHM" => 1425m,
+            "ASIANPAINT" => 3280m,
+            "SUNPHARMA" => 1680m,
+            "AXISBANK" => 1125m,
+            "ICICIBANK" => 1050m,
+            "INDIGO" => 3150m,
+            "KOTAKBANK" => 1875m,
+            "MINDTREE" => 3580m,
+            "DATAENTRY" => 2450m,
+            _ => 2500m
+        };
+
+        var random = new Random();
+        var priceChange = (decimal)(random.NextDouble() - 0.45) * basePrice * 0.05m;
+        var currentPrice = basePrice + priceChange;
+
+        var daysToExpiry = (selectedExpiry - DateTime.Now).TotalDays;
+        var strikeInterval = (int)(basePrice / 100);
+
+        var calls = new List<OptionDto>();
+        var puts = new List<OptionDto>();
+
+        for (int i = -5; i <= 5; i++)
+        {
+            var strike = currentPrice + (i * strikeInterval);
+            var moneyness = (currentPrice - strike) / currentPrice;
+            var baseIV = 20m + (Math.Abs((decimal)moneyness) * 15m);
+            var dayDecay = (decimal)daysToExpiry / 365m;
+
+            var callPrice = CalculateCallPrice(currentPrice, strike, baseIV, (decimal)daysToExpiry / 365m);
+            calls.Add(new OptionDto
+            {
+                Symbol = $"{selectedSymbol}C{selectedExpiry:ddMMMm}",
+                UnderlyingSymbol = selectedSymbol,
+                Type = "Call",
+                StrikePrice = strike,
+                ExpiryDate = selectedExpiry,
+                LastTradedPrice = callPrice,
+                Change = (decimal)(random.NextDouble() - 0.5) * callPrice * 0.2m,
+                ChangePercent = (decimal)(random.NextDouble() - 0.5) * 15m,
+                BidPrice = callPrice - (callPrice * 0.02m),
+                BidQuantity = (int)(1000 + random.Next(5000)),
+                AskPrice = callPrice + (callPrice * 0.02m),
+                AskQuantity = (int)(1000 + random.Next(5000)),
+                Volume = (long)(10000 + random.Next(100000)),
+                OpenInterest = (long)(50000 + random.Next(500000)),
+                OpenInterestChange = (long)(random.Next(-50000, 50000)),
+                ImpliedVolatility = baseIV + (decimal)(random.NextDouble() - 0.5) * 5m,
+                Delta = CalculateDelta(moneyness),
+                Gamma = CalculateGamma(moneyness, baseIV),
+                Theta = CalculateTheta(daysToExpiry),
+                Vega = baseIV * (decimal)daysToExpiry / 100m,
+                LastUpdated = DateTime.Now,
+                IsActive = true
+            });
+
+            var putPrice = CalculatePutPrice(currentPrice, strike, baseIV, (decimal)daysToExpiry / 365m);
+            puts.Add(new OptionDto
+            {
+                Symbol = $"{selectedSymbol}P{selectedExpiry:ddMMMm}",
+                UnderlyingSymbol = selectedSymbol,
+                Type = "Put",
+                StrikePrice = strike,
+                ExpiryDate = selectedExpiry,
+                LastTradedPrice = putPrice,
+                Change = (decimal)(random.NextDouble() - 0.5) * putPrice * 0.2m,
+                ChangePercent = (decimal)(random.NextDouble() - 0.5) * 15m,
+                BidPrice = putPrice - (putPrice * 0.02m),
+                BidQuantity = (int)(1000 + random.Next(5000)),
+                AskPrice = putPrice + (putPrice * 0.02m),
+                AskQuantity = (int)(1000 + random.Next(5000)),
+                Volume = (long)(10000 + random.Next(100000)),
+                OpenInterest = (long)(50000 + random.Next(500000)),
+                OpenInterestChange = (long)(random.Next(-50000, 50000)),
+                ImpliedVolatility = baseIV + (decimal)(random.NextDouble() - 0.5) * 5m,
+                Delta = CalculateDelta(moneyness) - 1m,
+                Gamma = CalculateGamma(moneyness, baseIV),
+                Theta = CalculateTheta(daysToExpiry),
+                Vega = baseIV * (decimal)daysToExpiry / 100m,
+                LastUpdated = DateTime.Now,
+                IsActive = true
+            });
+        }
+
+        optionChainData = new OptionChainDto
+        {
+            UnderlyingSymbol = selectedSymbol,
+            ExpiryDate = selectedExpiry,
+            UnderlyingPrice = currentPrice,
+            UnderlyingChange = priceChange,
+            UnderlyingChangePercent = (priceChange / basePrice) * 100m,
+            Calls = calls,
+            Puts = puts,
+            LastUpdated = DateTime.Now
+        };
+    }
+
+    private decimal CalculateCallPrice(decimal S, decimal K, decimal IV, decimal T)
+    {
+        var intrinsic = Math.Max(S - K, 0);
+        var timeValue = (IV / 100m) * S * (decimal)Math.Sqrt((double)T) * 0.4m;
+        return intrinsic + timeValue;
+    }
+
+    private decimal CalculatePutPrice(decimal S, decimal K, decimal IV, decimal T)
+    {
+        var intrinsic = Math.Max(K - S, 0);
+        var timeValue = (IV / 100m) * K * (decimal)Math.Sqrt((double)T) * 0.4m;
+        return intrinsic + timeValue;
+    }
+
+    private decimal CalculateDelta(decimal moneyness)
+    {
+        return (decimal)(0.5 + Math.Tanh((double)moneyness * 5) * 0.5);
+    }
+
+    private decimal CalculateGamma(decimal moneyness, decimal IV)
+    {
+        return (1m / (IV / 100m + 0.1m)) * 0.01m;
+    }
+
+    private decimal CalculateTheta(double daysToExpiry)
+    {
+        return -(decimal)daysToExpiry / 100m;
+    }
+
+    private void OnSymbolChanged(ChangeEventArgs e)
+    {
+        selectedSymbol = e.Value?.ToString() ?? "RELIANCE";
+        GenerateDummyOptionChain();
+    }
+
+    private void OnExpiryChanged(ChangeEventArgs e)
+    {
+        var dateStr = e.Value?.ToString();
+        if (DateTime.TryParse(dateStr, out var newDate))
+        {
+            selectedExpiry = newDate;
+            GenerateDummyOptionChain();
+        }
+    }
+
+    private void OnStrategyViewChanged(ChangeEventArgs e)
+    {
+        selectedStrategyView = e.Value?.ToString() ?? "bullish";
+        selectedStrategy = null;
+        currentStrategy = null;
+    }
+
+    private void SelectStrategy(StrategyInfo strategy)
+    {
+        selectedStrategy = strategy.Code;
+        currentStrategy = strategy;
+    }
+
+    private async Task ShowBuyModal(OptionDto option)
+    {
+        await Task.CompletedTask;
+    }
+
+    private async Task ShowSellModal(OptionDto option)
+    {
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleRefresh()
+    {
+        GenerateDummyOptionChain();
+        await Task.CompletedTask;
+    }
+
+    private List<StrategyInfo> GetStrategiesForView(string view) => view switch
+    {
+        "bullish" => new()
+        {
+            new StrategyInfo { Code = "bull_call", Icon = "📈", Name = "Bull Call Spread", Description = "Buy Lower Call + Sell Higher Call", RiskLevel = "Low", RewardLevel = "Medium", Outlook = "Slightly Bullish" },
+            new StrategyInfo { Code = "bull_put", Icon = "📈", Name = "Bull Put Spread", Description = "Sell Lower Put + Buy Higher Put", RiskLevel = "Medium", RewardLevel = "Medium", Outlook = "Moderately Bullish" },
+            new StrategyInfo { Code = "covered_call", Icon = "📊", Name = "Covered Call", Description = "Own Stock + Sell Call", RiskLevel = "Low", RewardLevel = "Low", Outlook = "Neutral to Bullish" },
+        },
+        "bearish" => new()
+        {
+            new StrategyInfo { Code = "bear_call", Icon = "📉", Name = "Bear Call Spread", Description = "Sell Lower Call + Buy Higher Call", RiskLevel = "Low", RewardLevel = "Medium", Outlook = "Slightly Bearish" },
+            new StrategyInfo { Code = "bear_put", Icon = "📉", Name = "Bear Put Spread", Description = "Buy Lower Put + Sell Higher Put", RiskLevel = "Medium", RewardLevel = "Medium", Outlook = "Moderately Bearish" },
+            new StrategyInfo { Code = "protective_put", Icon = "🛡️", Name = "Protective Put", Description = "Own Stock + Buy Put", RiskLevel = "Low", RewardLevel = "High", Outlook = "Downside Protection" },
+        },
+        _ => new()
+        {
+            new StrategyInfo { Code = "straddle", Icon = "🎯", Name = "Straddle", Description = "Buy ATM Call + Buy ATM Put", RiskLevel = "Medium", RewardLevel = "Medium", Outlook = "Expect Big Move" },
+            new StrategyInfo { Code = "strangle", Icon = "🔄", Name = "Strangle", Description = "Buy OTM Call + Buy OTM Put", RiskLevel = "Low", RewardLevel = "Medium", Outlook = "Expect Move (Lower Cost)" },
+            new StrategyInfo { Code = "iron_condor", Icon = "🦅", Name = "Iron Condor", Description = "Call Spread + Put Spread", RiskLevel = "Medium", RewardLevel = "Low", Outlook = "Range-Bound Price" },
+        }
+    };
+
+    private class StrategyInfo
+    {
+        public string Code { get; set; } = "";
+        public string Icon { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string Outlook { get; set; } = "";
+        public string RiskLevel { get; set; } = "";
+        public string RewardLevel { get; set; } = "";
+    }
+}
