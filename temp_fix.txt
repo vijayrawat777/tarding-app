@@ -1,3 +1,0 @@
-﻿                                    <td class="text-end">
-                                        <div class="text-muted">₹@((stock.MarketCap / 10000000M).ToString("N1"))Cr</div>
-                                    </td>
