@@ -198,43 +198,7 @@ public class OptionChainService : IOptionChainService
 
     public async Task<OptionChainResponse> GetOptionChainAsync(string symbol, string expiryDate)
     {
-        try
-        {
-            string access_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiZDoxIiwiZDoyIiwieDowIiwieDoxIiwieDoyIl0sImF0X2hhc2giOiJnQUFBQUFCcDM1SVRtNlRzNUdlSWJiYlFnZzlFYW9rcXIzNnpfdDNDZ1lLc0tNNEtZVXhnZDY5NGpidUFWUEwtQVRhc0FUblJXQTQ2UU5KWnZhTFZVTEpqaS1tYUxlV0wtODNrYUZQeUlUcTgtczV1OW1VdDhZOD0iLCJkaXNwbGF5X25hbWUiOiIiLCJvbXMiOiJLMSIsImhzbV9rZXkiOiJjNWM3NTRhNmEyNGEzMzY5NzNhNTEzZDQ1NDNkZDM3NDgxZWNjNWU4MDYwZTliZTY4M2FiNzg4MSIsImlzRGRwaUVuYWJsZWQiOiJOIiwiaXNNdGZFbmFibGVkIjoiTiIsImZ5X2lkIjoiRkFKMTA1MjkiLCJhcHBUeXBlIjoyMDAsImV4cCI6MTc3NjI5OTQwMCwiaWF0IjoxNzc2MjU5NjAzLCJpc3MiOiJhcGkuZnllcnMuaW4iLCJuYmYiOjE3NzYyNTk2MDMsInN1YiI6ImFjY2Vzc190b2tlbiJ9.QgvwWJUgCOX7olDiQy0dLwba29HAOtkDq_XZbEKgNWI";
-            FyersClass stocks = FyersClass.Instance;
-            stocks.ClientId = "26ZQB99CSZ-200";
-            stocks.AccessToken = access_token;
-
-            int strikeCount = 1;
-            string timestamp = "";
-            string greeks = "1";
-
-            Tuple<JArray, JObject> stockTuple = await stocks.OptionsChain("NSE:NIFTY50-INDEX", strikeCount, timestamp, greeks);
-
-            // Parse response at line 81
-            if (stockTuple.Item1 != null)
-            {
-                return ParseOptionChainResponse(stockTuple.Item1, expiryDate);
-            }
-            else if (stockTuple.Item2 != null)
-            {
-                return ParseOptionChainResponse(stockTuple.Item2, expiryDate);
-            }
-
-            return new OptionChainResponse
-            {
-                Success = false,
-                Message = "No data received from API"
-            };
-        }
-        catch (Exception ex)
-        {
-            return new OptionChainResponse
-            {
-                Success = false,
-                Message = $"Exception: {ex.Message}"
-            };
-        }
+       return default(OptionChainResponse);
     }
 
     private OptionChainResponse ParseOptionChainResponse(JToken response, string expiryDate)
