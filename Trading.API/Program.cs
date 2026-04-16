@@ -73,7 +73,7 @@ if (fyersConfig != null)
     builder.Services.AddScoped<IFyersAuthenticationService, FyersAuthenticationService>();
     builder.Services.AddScoped<IFyersOptionChainService, FyersOptionChainService>();
 }
-
+builder.Services.AddScoped<IOptionStrategyEngine, OptionStrategyEngine>();
 
 var app = builder.Build();
 

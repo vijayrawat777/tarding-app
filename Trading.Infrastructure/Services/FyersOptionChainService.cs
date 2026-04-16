@@ -1,4 +1,5 @@
 ﻿using FyersCSharpSDK;
+using HyperSyncLib;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using System.Net;
@@ -17,6 +18,7 @@ namespace Trading.Infrastructure.Services
     public interface IFyersOptionChainService
     {
         Task<OptionChainResponse> GetOptionChainData(OptionChainRequestDto requestDto);
+        Task<decimal> GetOptionChainSpotPrice(OptionChainRequestDto requestDto);
 
     }
 
@@ -28,6 +30,25 @@ namespace Trading.Infrastructure.Services
             FyersConfig fyersConfig)
         {
             _fyersConfig = fyersConfig;
+        }
+
+        public async Task<decimal> GetOptionChainSpotPrice(OptionChainRequestDto requestDto)
+        {
+            FyersClass stocks = FyersClass.Instance;
+            stocks.ClientId = _fyersConfig.AppId;
+            stocks.AccessToken = requestDto.AccessToken;
+            var result = await stocks.GetStockQuotes(requestDto.Symbol);
+
+            List<StockModel> stocksList = result.Item1;
+
+            //// ✔ Raw JSON (if needed)
+            JObject rawJson = result.Item2;
+            if (stocksList != null && stocksList.Count > 0)
+            {
+                return (decimal)stocksList[0].LimitPrice;
+            }
+            return (decimal)0.0;
+             
         }
 
         public async Task<OptionChainResponse> GetOptionChainData(OptionChainRequestDto requestDto)

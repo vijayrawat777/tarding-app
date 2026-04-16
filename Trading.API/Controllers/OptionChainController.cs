@@ -11,12 +11,12 @@ namespace Trading.API.Controllers
     [ApiController]
     public class OptionChainController : ControllerBase
     {
-        private readonly FyersConfig _fyersConfig;
+        private readonly IOptionStrategyEngine _strategy;
         private readonly IFyersOptionChainService _fyersOptionChainService;
 
-        public OptionChainController(FyersConfig fyersConfig, IFyersOptionChainService fyersOptionChainService)
+        public OptionChainController(IOptionStrategyEngine strategy, IFyersOptionChainService fyersOptionChainService)
         {
-            _fyersConfig = fyersConfig;
+            _strategy = strategy;
             _fyersOptionChainService = fyersOptionChainService;
         }
         [HttpPost("option-chain")]
@@ -35,5 +35,23 @@ namespace Trading.API.Controllers
                 return BadRequest(response.Message);
             }
         }
+        [HttpPost("signal")]
+        public async Task<IActionResult> GetSignal([FromBody] OptionChainRequestDto request)
+        {
+            var chain = await _fyersOptionChainService.GetOptionChainData(request);
+
+            if (!chain.Success)
+                return BadRequest(chain.Message);
+
+            decimal spotPrice = await _fyersOptionChainService.GetOptionChainSpotPrice(request);
+
+            if (spotPrice == 0)
+                return BadRequest("Spot Price not available");
+
+            var signal = _strategy.GenerateSignals(chain,spotPrice);
+
+            return Ok(signal);
+        }
     }
 }
+
