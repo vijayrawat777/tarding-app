@@ -1,4 +1,4 @@
-﻿@page "/trading-dashboard"
+﻿@* @page "/trading-dashboard"
 @page "/trading"
 @rendermode InteractiveServer
 @using global::Trading.Application.DTOs
@@ -234,7 +234,6 @@
 @code {
     private string selectedSymbol = "RELIANCE";
     private DateTime selectedExpiry = DateTime.Now.AddDays(7);
-    private OptionChainDto? optionChainData;
     private string selectedStrategyView = "bullish";
     private string? selectedStrategy;
     private StrategyInfo? currentStrategy;
@@ -436,15 +435,15 @@
         currentStrategy = strategy;
     }
 
-    private async Task ShowBuyModal(OptionDto option)
-    {
-        await Task.CompletedTask;
-    }
+    // private async Task ShowBuyModal(OptionDto option)
+    // {
+    //     await Task.CompletedTask;
+    // }
 
-    private async Task ShowSellModal(OptionDto option)
-    {
-        await Task.CompletedTask;
-    }
+    // private async Task ShowSellModal(OptionDto option)
+    // {
+    //     await Task.CompletedTask;
+    // }
 
     private async Task HandleRefresh()
     {
@@ -485,3 +484,4 @@
         public string RewardLevel { get; set; } = "";
     }
 }
+ *@

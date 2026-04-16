@@ -6,6 +6,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="fyers-api-v3" Version="1.2.0" />
+    <PackageReference Include="RestSharp" Version="114.0.0" />
+  </ItemGroup>
+
  	<ItemGroup>
 		<ProjectReference Include="..\Trading.Domain\Trading.Domain.csproj" />
 		<ProjectReference Include="..\Trading.Application\Trading.Application.csproj" />

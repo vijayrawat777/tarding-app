@@ -1,194 +1,185 @@
 ﻿@page "/"
 @rendermode InteractiveServer
 
-<PageTitle>Home - Algo Trading System</PageTitle>
-
-<div style="background: linear-gradient(135deg, #0d1117 0%, #161b22 100%); color: #e6edf3; min-height: 100vh; padding: 40px 20px;">
-    <div class="container">
-        <!-- HERO SECTION -->
-        <div style="text-align: center; margin-bottom: 60px; padding: 40px 0;">
-            <h1 style="font-size: 3.5rem; font-weight: bold; margin-bottom: 20px; color: #58a6ff;">
-                📊 Algo Trading System
+<div style="background: linear-gradient(135deg, #0d1117 0%, #161b22 100%); min-height: 100vh; padding: 40px 20px;">
+    <div class="container-lg">
+        <!-- Header Section -->
+        <div style="text-align: center; margin-bottom: 60px;">
+            <h1 style="color: #c9d1d9; font-size: 3.5rem; font-weight: 700; margin-bottom: 20px;">
+                📈 Trading Platform
             </h1>
-            <p style="font-size: 1.3rem; color: #8b949e; margin-bottom: 30px;">
-                Automated Options Trading Platform for Indian Stock Market
+            <p style="color: #8b949e; font-size: 1.2rem; margin-bottom: 30px;">
+                AI-Powered Algorithmic Trading with Live Fyers Integration
             </p>
             <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-                <a href="/trading-dashboard" class="btn btn-primary" style="padding: 12px 30px; font-size: 1rem;">
-                    🚀 Start Trading
+                <a href="/marketwatch" class="btn btn-success" style="padding: 14px 35px; font-size: 1.1rem; font-weight: 600; background: #3fb950; border: none;">
+                    📊 Market Watch (LIVE)
                 </a>
-                <a href="/backtest" class="btn btn-outline-primary" style="padding: 12px 30px; font-size: 1rem;">
-                    📈 Test Strategy
+                <a href="/option-chain" class="btn btn-info" style="padding: 14px 35px; font-size: 1.1rem; font-weight: 600; background: #1f6feb; border: none;">
+                    📋 Option Chain
                 </a>
-            </div>
-        </div>
-
-        <!-- FEATURES GRID -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-bottom: 60px;">
-            
-            <!-- FEATURE 1 -->
-            <div style="background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 30px; transition: transform 0.3s, border-color 0.3s;">
-                <div style="font-size: 2.5rem; margin-bottom: 15px;">📊</div>
-                <h3 style="color: #58a6ff; margin-bottom: 15px; font-size: 1.3rem;">Trading Dashboard</h3>
-                <p style="color: #8b949e; line-height: 1.6;">
-                    Real-time market analysis, options chain visualization, and automated trading controls.
-                </p>
-                <a href="/trading-dashboard" style="color: #58a6ff; text-decoration: none; font-weight: 600; margin-top: 20px; display: inline-block;">
-                    Go to Dashboard →
-                </a>
-            </div>
-
-            <!-- FEATURE 2 -->
-            <div style="background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 30px; transition: transform 0.3s, border-color 0.3s;">
-                <div style="font-size: 2.5rem; margin-bottom: 15px;">⚡</div>
-                <h3 style="color: #58a6ff; margin-bottom: 15px; font-size: 1.3rem;">Option Chain Analysis</h3>
-                <p style="color: #8b949e; line-height: 1.6;">
-                    Detailed options chain with Greeks (IV, Delta, Gamma, Theta, Vega) and bid/ask spreads.
-                </p>
-                <a href="/option-chain" style="color: #58a6ff; text-decoration: none; font-weight: 600; margin-top: 20px; display: inline-block;">
-                    View Options →
-                </a>
-            </div>
-
-            <!-- FEATURE 3 -->
-            <div style="background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 30px; transition: transform 0.3s, border-color 0.3s;">
-                <div style="font-size: 2.5rem; margin-bottom: 15px;">🔄</div>
-                <h3 style="color: #58a6ff; margin-bottom: 15px; font-size: 1.3rem;">Strategy Backtesting</h3>
-                <p style="color: #8b949e; line-height: 1.6;">
-                    Test trading strategies on historical data with detailed performance metrics.
-                </p>
-                <a href="/backtest" style="color: #58a6ff; text-decoration: none; font-weight: 600; margin-top: 20px; display: inline-block;">
-                    Start Backtest →
+                <a href="/historical-data" class="btn btn-warning" style="padding: 14px 35px; font-size: 1.1rem; font-weight: 600; background: #d29922; border: none;">
+                    📅 Historical Data
                 </a>
             </div>
         </div>
 
-        <!-- TRADING STRATEGIES -->
+        <!-- Feature Grid -->
+        <div class="row g-4" style="margin-bottom: 60px;">
+            <!-- Market Watch Card -->
+            <div class="col-lg-3 col-md-6">
+                <div style="background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 30px; height: 100%; transition: all 0.3s ease;">
+                    <div style="font-size: 3rem; margin-bottom: 20px;">📊</div>
+                    <h3 style="color: #58a6ff; margin-bottom: 15px; font-size: 1.3rem;">Market Watch</h3>
+                    <p style="color: #8b949e; line-height: 1.6; margin-bottom: 20px;">
+                        Real-time stock prices from Fyers API with auto-refresh every 5 seconds. Monitor multiple stocks simultaneously.
+                    </p>
+                    <a href="/marketwatch" style="color: #3fb950; text-decoration: none; font-weight: 600;">
+                        Open Market Watch →
+                    </a>
+                </div>
+            </div>
+
+            <!-- Historical Data Card -->
+            <div class="col-lg-3 col-md-6">
+                <div style="background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 30px; height: 100%; transition: all 0.3s ease;">
+                    <div style="font-size: 3rem; margin-bottom: 20px;">📅</div>
+                    <h3 style="color: #58a6ff; margin-bottom: 15px; font-size: 1.3rem;">Historical Data</h3>
+                    <p style="color: #8b949e; line-height: 1.6; margin-bottom: 20px;">
+                        View OHLC candlestick data for any stock. Analyze historical trends and price patterns over custom date ranges.
+                    </p>
+                    <a href="/historical-data" style="color: #d29922; text-decoration: none; font-weight: 600;">
+                        View Historical Data →
+                    </a>
+                </div>
+            </div>
+
+            <!-- Option Chain Card -->
+            <div class="col-lg-3 col-md-6">
+                <div style="background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 30px; height: 100%; transition: all 0.3s ease;">
+                    <div style="font-size: 3rem; margin-bottom: 20px;">📋</div>
+                    <h3 style="color: #58a6ff; margin-bottom: 15px; font-size: 1.3rem;">Option Chain</h3>
+                    <p style="color: #8b949e; line-height: 1.6; margin-bottom: 20px;">
+                        Live options chain data with Greeks (Delta, IV, Theta). Compare Calls vs Puts with bid/ask spreads and volume.
+                    </p>
+                    <a href="/option-chain" style="color: #1f6feb; text-decoration: none; font-weight: 600;">
+                        Open Option Chain →
+                    </a>
+                </div>
+            </div>
+
+            <!-- Trading Dashboard Card -->
+            <div class="col-lg-3 col-md-6">
+                <div style="background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 30px; height: 100%; transition: all 0.3s ease;">
+                    <div style="font-size: 3rem; margin-bottom: 20px;">💹</div>
+                    <h3 style="color: #58a6ff; margin-bottom: 15px; font-size: 1.3rem;">Trading Dashboard</h3>
+                    <p style="color: #8b949e; line-height: 1.6; margin-bottom: 20px;">
+                        Complete trading interface with order placement, position tracking, and portfolio management coming soon.
+                    </p>
+                    <a href="#" style="color: #8b949e; text-decoration: none; font-weight: 600;">
+                        Explore Dashboard →
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Getting Started Section -->
         <div style="background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 40px; margin-bottom: 40px;">
-            <h2 style="color: #58a6ff; margin-bottom: 30px; font-size: 2rem;">🎯 Supported Strategies</h2>
-            
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
-                <div style="background: #0d1117; padding: 20px; border-radius: 8px; border-left: 3px solid #3fb950;">
-                    <h4 style="color: #3fb950; margin-bottom: 10px;">📈 Bullish Strategies</h4>
-                    <ul style="color: #8b949e; list-style: none; padding: 0; margin: 0;">
-                        <li>✓ Bull Call Spread</li>
-                        <li>✓ Bull Put Spread</li>
-                        <li>✓ Covered Call</li>
-                    </ul>
+            <h2 style="color: #58a6ff; margin-bottom: 30px; font-size: 2rem;">Getting Started</h2>
+            <div class="row">
+                <div class="col-md-6">
+                    <h4 style="color: #c9d1d9; margin-bottom: 15px;">Quick Start Guide</h4>
+                    <ol style="color: #8b949e; line-height: 2;">
+                        <li><strong style="color: #c9d1d9;">Check Market Watch</strong> - See live stock prices updated every 5 seconds</li>
+                        <li><strong style="color: #c9d1d9;">Review Historical Data</strong> - Analyze past price trends and patterns</li>
+                        <li><strong style="color: #c9d1d9;">Explore Options Chain</strong> - View option contracts with Greeks (Delta, IV, Theta)</li>
+                        <li><strong style="color: #c9d1d9;">Place Orders</strong> - Execute trades with paper trading (coming soon)</li>
+                        <li><strong style="color: #c9d1d9;">Track Portfolio</strong> - Monitor positions and trade history</li>
+                    </ol>
                 </div>
-
-                <div style="background: #0d1117; padding: 20px; border-radius: 8px; border-left: 3px solid #f85149;">
-                    <h4 style="color: #f85149; margin-bottom: 10px;">📉 Bearish Strategies</h4>
-                    <ul style="color: #8b949e; list-style: none; padding: 0; margin: 0;">
-                        <li>✓ Bear Call Spread</li>
-                        <li>✓ Bear Put Spread</li>
-                        <li>✓ Protective Put</li>
-                    </ul>
-                </div>
-
-                <div style="background: #0d1117; padding: 20px; border-radius: 8px; border-left: 3px solid #d29922;">
-                    <h4 style="color: #d29922; margin-bottom: 10px;">🎯 Neutral Strategies</h4>
-                    <ul style="color: #8b949e; list-style: none; padding: 0; margin: 0;">
-                        <li>✓ Straddle</li>
-                        <li>✓ Strangle</li>
-                        <li>✓ Iron Condor</li>
-                    </ul>
-                </div>
-
-                <div style="background: #0d1117; padding: 20px; border-radius: 8px; border-left: 3px solid #58a6ff;">
-                    <h4 style="color: #58a6ff; margin-bottom: 10px;">🤖 Algorithms</h4>
-                    <ul style="color: #8b949e; list-style: none; padding: 0; margin: 0;">
-                        <li>✓ EMA Crossover</li>
-                        <li>✓ RSI Strategy</li>
-                        <li>✓ MACD Strategy</li>
+                <div class="col-md-6">
+                    <h4 style="color: #c9d1d9; margin-bottom: 15px;">Key Features</h4>
+                    <ul style="color: #8b949e; line-height: 2;">
+                        <li>✅ <strong style="color: #3fb950;">Live Fyers API Integration</strong> - Real-time market data</li>
+                        <li>✅ <strong style="color: #3fb950;">Multi-Stock Watchlist</strong> - Monitor TCS, RELIANCE, INFY, HDFC, WIPRO</li>
+                        <li>✅ <strong style="color: #3fb950;">Option Greeks Display</strong> - Delta, IV, Theta, Greeks calculations</li>
+                        <li>✅ <strong style="color: #3fb950;">Dark Theme UI</strong> - Modern, professional interface</li>
+                        <li>✅ <strong style="color: #3fb950;">Auto-Refresh</strong> - Data updates every 5 seconds</li>
                     </ul>
                 </div>
             </div>
         </div>
 
-        <!-- KEY STATS -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 40px;">
-            <div style="background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 30px; text-align: center;">
-                <div style="font-size: 2.5rem; color: #3fb950; font-weight: bold;">20+</div>
-                <div style="color: #8b949e; margin-top: 10px;">Supported Stocks</div>
+        <!-- Stats Section -->
+        <div class="row g-3 mb-5">
+            <div class="col-md-3">
+                <div style="background: linear-gradient(135deg, #1f6feb 0%, #0d47a1 100%); border-radius: 12px; padding: 30px; text-align: center;">
+                    <p style="color: rgba(255,255,255,0.7); margin-bottom: 10px; font-size: 0.9rem;">LIVE STOCKS</p>
+                    <h3 style="color: white; margin: 0;">5+</h3>
+                </div>
             </div>
-            <div style="background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 30px; text-align: center;">
-                <div style="font-size: 2.5rem; color: #58a6ff; font-weight: bold;">9</div>
-                <div style="color: #8b949e; margin-top: 10px;">Trading Strategies</div>
+            <div class="col-md-3">
+                <div style="background: linear-gradient(135deg, #3fb950 0%, #1a6934 100%); border-radius: 12px; padding: 30px; text-align: center;">
+                    <p style="color: rgba(255,255,255,0.7); margin-bottom: 10px; font-size: 0.9rem;">REAL-TIME UPDATES</p>
+                    <h3 style="color: white; margin: 0;">5s</h3>
+                </div>
             </div>
-            <div style="background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 30px; text-align: center;">
-                <div style="font-size: 2.5rem; color: #f85149; font-weight: bold;">Paper</div>
-                <div style="color: #8b949e; margin-top: 10px;">Trading Mode</div>
+            <div class="col-md-3">
+                <div style="background: linear-gradient(135deg, #d29922 0%, #9a5a1c 100%); border-radius: 12px; padding: 30px; text-align: center;">
+                    <p style="color: rgba(255,255,255,0.7); margin-bottom: 10px; font-size: 0.9rem;">DATA POINTS</p>
+                    <h3 style="color: white; margin: 0;">OHLCV+</h3>
+                </div>
             </div>
-            <div style="background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 30px; text-align: center;">
-                <div style="font-size: 2.5rem; color: #d29922; font-weight: bold;">Real-time</div>
-                <div style="color: #8b949e; margin-top: 10px;">Updates</div>
+            <div class="col-md-3">
+                <div style="background: linear-gradient(135deg, #58a6ff 0%, #0969da 100%); border-radius: 12px; padding: 30px; text-align: center;">
+                    <p style="color: rgba(255,255,255,0.7); margin-bottom: 10px; font-size: 0.9rem;">TOKEN HEALTH</p>
+                    <h3 style="color: white; margin: 0;">✅ Live</h3>
+                </div>
             </div>
         </div>
 
-        <!-- GETTING STARTED -->
-        <div style="background: #161b22; border: 2px solid #58a6ff; border-radius: 12px; padding: 40px; text-align: center;">
-            <h2 style="color: #58a6ff; margin-bottom: 20px; font-size: 1.8rem;">🚀 Getting Started</h2>
-            <ol style="color: #8b949e; text-align: left; max-width: 600px; margin: 0 auto; line-height: 2;">
-                <li>Navigate to <strong style="color: #e6edf3;">Trading Dashboard</strong> for real-time options analysis</li>
-                <li>Select your preferred <strong style="color: #e6edf3;">trading strategy</strong> (Bullish/Bearish/Neutral)</li>
-                <li>Configure auto-trading parameters or <strong style="color: #e6edf3;">place manual orders</strong></li>
-                <li>Monitor live trade logs and performance metrics</li>
-                <li>Use <strong style="color: #e6edf3;">Backtest</strong> to validate strategies before live trading</li>
-            </ol>
+        <!-- Technology Stack -->
+        <div style="background: #0d1117; border: 1px solid #30363d; border-radius: 12px; padding: 40px; margin-bottom: 40px;">
+            <h2 style="color: #58a6ff; margin-bottom: 30px; font-size: 2rem;">Technology Stack</h2>
+            <div class="row">
+                <div class="col-md-4">
+                    <h5 style="color: #c9d1d9;">Backend</h5>
+                    <ul style="color: #8b949e; list-style: none; padding: 0;">
+                        <li>🖥️ .NET 9 Web API</li>
+                        <li>📦 Fyers API v3</li>
+                        <li>🏗️ Clean Architecture</li>
+                        <li>💾 Repository Pattern</li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5 style="color: #c9d1d9;">Frontend</h5>
+                    <ul style="color: #8b949e; list-style: none; padding: 0;">
+                        <li>⚡ Blazor Server</li>
+                        <li>🎨 Bootstrap 5</li>
+                        <li>📊 Real-time UI Updates</li>
+                        <li>🌙 Dark Theme Interface</li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5 style="color: #c9d1d9;">Real-Time</h5>
+                    <ul style="color: #8b949e; list-style: none; padding: 0;">
+                        <li>🔄 SignalR (Coming Soon)</li>
+                        <li>📡 Auto-Refresh Timers</li>
+                        <li>🚀 WebSocket Ready</li>
+                        <li>⏱️ 5-Second Updates</li>
+                    </ul>
+                </div>
+            </div>
         </div>
 
-        <!-- FOOTER -->
-        <footer style="text-align: center; margin-top: 60px; padding-top: 30px; border-top: 1px solid #30363d; color: #8b949e;">
-            <p style="margin: 0; font-size: 0.9rem;">
-                © 2026 Algo Trading System | Built for Indian Stock Market | Paper Trading Mode
+        <!-- Footer -->
+        <div style="text-align: center; padding: 30px 0; border-top: 1px solid #30363d;">
+            <p style="color: #8b949e; margin-bottom: 10px;">
+                <strong style="color: #c9d1d9;">AI-Powered Trading Platform</strong> with Live Fyers API Integration
             </p>
-        </footer>
+            <p style="color: #6e7681; font-size: 0.9rem;">
+                This is a demo application. Use only for educational purposes and paper trading.
+            </p>
+        </div>
     </div>
 </div>
-
-<style>
-    .btn {
-        display: inline-block;
-        padding: 10px 20px;
-        border-radius: 6px;
-        text-decoration: none;
-        font-weight: 600;
-        transition: all 0.3s;
-        border: none;
-        cursor: pointer;
-    }
-
-    .btn-primary {
-        background-color: #58a6ff;
-        color: #0d1117;
-    }
-
-    .btn-primary:hover {
-        background-color: #79c0ff;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(88, 166, 255, 0.3);
-    }
-
-    .btn-outline-primary {
-        border: 2px solid #58a6ff;
-        color: #58a6ff;
-        background-color: transparent;
-    }
-
-    .btn-outline-primary:hover {
-        background-color: #58a6ff;
-        color: #0d1117;
-        transform: translateY(-2px);
-    }
-
-    .container {
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-
-    [style*="border-radius: 12px"]:hover {
-        border-color: #58a6ff;
-        transition: border-color 0.3s;
-    }
-</style>

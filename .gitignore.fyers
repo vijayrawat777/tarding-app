@@ -1,0 +1,17 @@
+﻿# Fyers Integration - Add to .gitignore
+
+# Local development settings with credentials
+appsettings.Development.json
+appsettings.local.json
+
+# Environment files
+.env
+.env.local
+
+# User-specific settings
+*.user
+*.suo
+
+# Build outputs
+bin/
+obj/

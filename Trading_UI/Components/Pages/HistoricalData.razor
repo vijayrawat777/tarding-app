@@ -1,0 +1,125 @@
+﻿@page "/historical-data"
+@rendermode InteractiveServer
+@inject IHistoricalDataService HistoricalDataService
+@implements IAsyncDisposable
+
+<div class="container-fluid mt-5">
+    <div class="row">
+        <div class="col-12">
+            <div style="background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 30px; margin-bottom: 30px;">
+                <h1 style="color: #58a6ff; margin-bottom: 10px;">📊 Historical Data Analysis</h1>
+                <p style="color: #8b949e; margin-bottom: 30px;">View historical OHLC data and price trends</p>
+
+                <!-- Controls Section -->
+                <div style="background: #0d1117; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label style="color: #c9d1d9;">Symbol</label>
+                            <input type="text" class="form-control" 
+                                   style="background: #161b22; border: 1px solid #30363d; color: #c9d1d9;"
+                                   @bind="SelectedSymbol" placeholder="e.g., TCS" />
+                        </div>
+                        <div class="col-md-3">
+                            <label style="color: #c9d1d9;">From Date</label>
+                            <input type="date" class="form-control" 
+                                   style="background: #161b22; border: 1px solid #30363d; color: #c9d1d9;"
+                                   @bind="FromDate" />
+                        </div>
+                        <div class="col-md-3">
+                            <label style="color: #c9d1d9;">To Date</label>
+                            <input type="date" class="form-control" 
+                                   style="background: #161b22; border: 1px solid #30363d; color: #c9d1d9;"
+                                   @bind="ToDate" />
+                        </div>
+                        <div class="col-md-3">
+                            <label style="color: #c9d1d9;" class="d-block">&nbsp;</label>
+                            <button class="btn btn-primary w-100" @onclick="LoadHistoricalData">
+                                Load Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                @if (IsLoading)
+                {
+                    <div style="text-align: center; padding: 40px;">
+                        <div class="spinner-border" style="color: #58a6ff;" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p style="color: #8b949e; margin-top: 15px;">Loading historical data...</p>
+                    </div>
+                }
+                else if (DataPoints.Count > 0)
+                {
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; color: #c9d1d9;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid #30363d;">
+                                    <th style="padding: 12px; text-align: left; color: #58a6ff; font-weight: 600;">Date</th>
+                                    <th style="padding: 12px; text-align: right; color: #58a6ff; font-weight: 600;">Open</th>
+                                    <th style="padding: 12px; text-align: right; color: #58a6ff; font-weight: 600;">High</th>
+                                    <th style="padding: 12px; text-align: right; color: #58a6ff; font-weight: 600;">Low</th>
+                                    <th style="padding: 12px; text-align: right; color: #58a6ff; font-weight: 600;">Close</th>
+                                    <th style="padding: 12px; text-align: right; color: #58a6ff; font-weight: 600;">Change</th>
+                                    <th style="padding: 12px; text-align: right; color: #58a6ff; font-weight: 600;">Volume</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var data in DataPoints)
+                                {
+                                    var change = ((data.Close - data.Open) / data.Open) * 100;
+                                    var changeColor = change >= 0 ? "#3fb950" : "#f85149";
+                                    <tr style="border-bottom: 1px solid #21262d;">
+                                        <td style="padding: 12px;">@data.Date.ToShortDateString()</td>
+                                        <td style="padding: 12px; text-align: right;">₹@data.Open.ToString("F2")</td>
+                                        <td style="padding: 12px; text-align: right;">₹@data.High.ToString("F2")</td>
+                                        <td style="padding: 12px; text-align: right;">₹@data.Low.ToString("F2")</td>
+                                        <td style="padding: 12px; text-align: right; font-weight: 600;">₹@data.Close.ToString("F2")</td>
+                                        <td style="padding: 12px; text-align: right; color: @changeColor; font-weight: 600;">@change.ToString("F2")%</td>
+                                        <td style="padding: 12px; text-align: right;">@(data.Volume / 1000000)M</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div style="background: #0d1117; padding: 30px; border-radius: 8px; text-align: center;">
+                        <p style="color: #8b949e;">No data. Enter symbol and dates, then click Load Data.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<HistoricalDataPoint> DataPoints = new();
+    private string SelectedSymbol = "TCS";
+    private DateTime FromDate = DateTime.Now.AddDays(-30);
+    private DateTime ToDate = DateTime.Now;
+    private bool IsLoading = false;
+
+    private async Task LoadHistoricalData()
+    {
+        if (string.IsNullOrWhiteSpace(SelectedSymbol))
+            return;
+        IsLoading = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            DataPoints = await HistoricalDataService.SimulateHistoricalDataAsync(SelectedSymbol, 30);
+        }
+        finally
+        {
+            IsLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        await ValueTask.CompletedTask;
+    }
+}
