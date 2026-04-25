@@ -7,175 +7,105 @@ using System.Threading.Tasks;
 
 namespace Trading.Application.DTOs.OptionChain
 {
-    public class Greeks
+
+    public class OptionChainResponse
     {
-        [JsonProperty("Delta")]
-        public decimal Delta { get; set; }
+        public bool Success { get; set; }
+        public string Message { get; set; }
 
-        [JsonProperty("Gamma")]
-        public decimal Gamma { get; set; }
+        public List<OptionChainData> Data { get; set; } = new();
 
-        [JsonProperty("Theta")]
-        public decimal Theta { get; set; }
+        public string ExpiryDate { get; set; }
 
-        [JsonProperty("Vega")]
-        public decimal Vega { get; set; }
+        public List<ExpiryData> AvailableExpiries { get; set; } = new();
 
-        [JsonProperty("Iv")]
-        public decimal IV { get; set; }
+        public VixData VIXData { get; set; }
+
+        public long TotalCallOI { get; set; }
+        public long TotalPutOI { get; set; }
+
+        public decimal ATM { get; set; }
+        public long Support { get; set; }
+        public long Resistance { get; set; }
     }
 
-    // Raw option chain item from API
-    public class RawOptionChainItem
+    public class ExpiryData
     {
-        [JsonProperty("Ask")]
-        public decimal Ask { get; set; }
+        public string Date { get; set; }
+        public string Expiry { get; set; }
+    }
 
-        [JsonProperty("Bid")]
-        public decimal Bid { get; set; }
-
-        [JsonProperty("Description")]
-        public string Description { get; set; }
-
-        [JsonProperty("Ex_symbol")]
-        public string ExSymbol { get; set; }
-
-        [JsonProperty("Exchange")]
-        public string Exchange { get; set; }
-
-        [JsonProperty("FyToken")]
-        public string FyToken { get; set; }
-
-        [JsonProperty("Ltp")]
-        public decimal LTP { get; set; }
-
-        [JsonProperty("Ltpch")]
-        public decimal LTPChange { get; set; }
-
-        [JsonProperty("Ltpchp")]
-        public decimal LTPChangePercent { get; set; }
-
-        [JsonProperty("Option_type")]
-        public string OptionType { get; set; } // "CE", "PE", or empty for underlying
+    public class RawOption
+    {
+        [JsonProperty("Symbol")]
+        public string Symbol { get; set; }
 
         [JsonProperty("Strike_price")]
         public decimal StrikePrice { get; set; }
 
-        [JsonProperty("Symbol")]
-        public string Symbol { get; set; }
-
-        [JsonProperty("Oi")]
-        public long OpenInterest { get; set; }
-
-        [JsonProperty("Oich")]
-        public long OIChange { get; set; }
-
-        [JsonProperty("Oichp")]
-        public decimal OIChangePercent { get; set; }
-
-        [JsonProperty("Volume")]
-        public long Volume { get; set; }
-
-        [JsonProperty("Greeks")]
-        public Greeks Greeks { get; set; }
-    }
-
-    // Expiry data
-    public class ExpiryData
-    {
-        [JsonProperty("Date")]
-        public string Date { get; set; }
-
-        [JsonProperty("Expiry")]
-        public string Expiry { get; set; }
-    }
-
-    // VIX data
-    public class VIXData
-    {
-        [JsonProperty("Ask")]
-        public decimal Ask { get; set; }
-
-        [JsonProperty("Bid")]
-        public decimal Bid { get; set; }
-
-        [JsonProperty("Description")]
-        public string Description { get; set; }
+        [JsonProperty("Option_type")]
+        public string OptionType { get; set; }
 
         [JsonProperty("Ltp")]
         public decimal LTP { get; set; }
 
-        [JsonProperty("Ltpch")]
-        public decimal LTPChange { get; set; }
+        [JsonProperty("Bid")]
+        public decimal Bid { get; set; }
 
-        [JsonProperty("Ltpchp")]
-        public decimal LTPChangePercent { get; set; }
+        [JsonProperty("Ask")]
+        public decimal Ask { get; set; }
 
-        [JsonProperty("Symbol")]
+        [JsonProperty("Oi")]
+        public long OpenInterest { get; set; }
+
+        [JsonProperty("Volume")]
+        public long Volume { get; set; }
+    }
+    public class VixData
+    {
+        public decimal Ask { get; set; }
+        public decimal Bid { get; set; }
+        public string Description { get; set; }
+        public string Ex_symbol { get; set; }
+        public string Exchange { get; set; }
+        public string FyToken { get; set; }
+
+        public decimal Ltp { get; set; }
+        public decimal Ltpch { get; set; }
+        public decimal Ltpchp { get; set; }
+
         public string Symbol { get; set; }
     }
-
-    // Raw API response
-    public class RawOptionChainResponse
-    {
-        [JsonProperty("CallOi")]
-        public string CallOI { get; set; }
-
-        [JsonProperty("PutOi")]
-        public string PutOI { get; set; }
-
-        [JsonProperty("expiryData")]
-        public List<ExpiryData> ExpiryData { get; set; } = new();
-
-        [JsonProperty("indiavixData")]
-        public List<VIXData> IndiaVixData { get; set; } = new();
-
-        [JsonProperty("optionsChainData")]
-        public List<RawOptionChainItem> OptionsChainData { get; set; } = new();
-    }
-
-    // UI-friendly option chain data (grouped by strike)
     public class OptionChainData
     {
         public double StrikePrice { get; set; }
 
-        // Call option data
+        // CALL
         public string CallSymbol { get; set; }
         public decimal CallBid { get; set; }
         public decimal CallAsk { get; set; }
         public decimal CallLTP { get; set; }
         public long CallOpenInterest { get; set; }
         public long CallVolume { get; set; }
+
         public decimal? CallIV { get; set; }
         public decimal? CallDelta { get; set; }
-        public decimal? CallTheta { get; set; }
         public decimal? CallGamma { get; set; }
+        public decimal? CallTheta { get; set; }
         public decimal? CallVega { get; set; }
 
-        // Put option data
+        // PUT
         public string PutSymbol { get; set; }
         public decimal PutBid { get; set; }
         public decimal PutAsk { get; set; }
         public decimal PutLTP { get; set; }
         public long PutOpenInterest { get; set; }
         public long PutVolume { get; set; }
+
         public decimal? PutIV { get; set; }
         public decimal? PutDelta { get; set; }
-        public decimal? PutTheta { get; set; }
         public decimal? PutGamma { get; set; }
+        public decimal? PutTheta { get; set; }
         public decimal? PutVega { get; set; }
     }
-
-    public class OptionChainResponse
-    {
-        public bool Success { get; set; }
-        public List<OptionChainData> Data { get; set; } = new();
-        public string ExpiryDate { get; set; }
-        public string Message { get; set; }
-        public List<ExpiryData> AvailableExpiries { get; set; } = new();
-        public VIXData VIXData { get; set; }
-        public long TotalCallOI { get; set; }
-        public long TotalPutOI { get; set; }
-    }
-
 }

@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Web;
 using Trading.Application.DTOs.OptionChain;
 using Trading.Infrastructure.Configuration;
+using ExpiryData = Trading.Application.DTOs.OptionChain.ExpiryData;
 
 namespace Trading.Infrastructure.Services
 {
@@ -55,26 +56,30 @@ namespace Trading.Infrastructure.Services
         {
             try
             {
-                FyersClass stocks = FyersClass.Instance;
+                var stocks = FyersClass.Instance;
                 stocks.ClientId = _fyersConfig.AppId;
                 stocks.AccessToken = requestDto.AccessToken;
 
-                Tuple<JArray, JObject> stockTuple = await stocks.OptionsChain(requestDto.Symbol, requestDto.StrikeCount, requestDto.Timestamp, requestDto.Greek);
-                // Parse response at line 81
-                if (stockTuple.Item1 != null)
+                var stockTuple = await stocks.OptionsChain(
+                    requestDto.Symbol,
+                    requestDto.StrikeCount,
+                    requestDto.Timestamp,
+                    requestDto.Greek);
+
+                // Normalize response (VERY IMPORTANT)
+                JToken responseToken = stockTuple.Item1?.FirstOrDefault()
+                                       ?? stockTuple.Item2;
+
+                if (responseToken == null)
                 {
-                    return ParseOptionChainResponse(stockTuple.Item1, requestDto.ExpiryDate);
-                }
-                else if (stockTuple.Item2 != null)
-                {
-                    return ParseOptionChainResponse(stockTuple.Item2, requestDto.ExpiryDate);
+                    return new OptionChainResponse
+                    {
+                        Success = false,
+                        Message = "No data received from API"
+                    };
                 }
 
-                return new OptionChainResponse
-                {
-                    Success = false,
-                    Message = "No data received from API"
-                };
+                return ParseOptionChainResponse(responseToken, requestDto.ExpiryDate);
             }
             catch (Exception ex)
             {
@@ -90,94 +95,89 @@ namespace Trading.Infrastructure.Services
         {
             try
             {
-                // If response is JArray, get first element
-                if (response is JArray jArray)
-                {
-                    if (jArray.Count == 0)
-                        return new OptionChainResponse { Success = false, Message = "Empty response array" };
+                var raw = response;
 
-                    response = jArray[0];
+                var optionsArray = raw["optionsChainData"] as JArray;
+                var expiryArray = raw["expiryData"]?.ToObject<List<ExpiryData>>();
+                var vix = raw["indiavixData"]?.FirstOrDefault();
+
+                if (optionsArray == null || !optionsArray.Any())
+                {
+                    return new OptionChainResponse
+                    {
+                        Success = false,
+                        Message = "No option chain data found"
+                    };
                 }
 
-                // Deserialize to our DTO
-                var rawResponse = response.ToObject<RawOptionChainResponse>();
+                // Extract total OI safely
+                long callOI = raw["CallOi"]?.Value<long>() ?? 0;
+                long putOI = raw["PutOi"]?.Value<long>() ?? 0;
 
-                if (rawResponse == null)
-                    return new OptionChainResponse { Success = false, Message = "Failed to deserialize response" };
-
-                // Parse total OI values
-                long.TryParse(rawResponse.CallOI, out long callOI);
-                long.TryParse(rawResponse.PutOI, out long putOI);
-
-                // Group options by strike price (CE and PE pairs)
-                var optionsByStrike = rawResponse.OptionsChainData
-                    .Where(x => !string.IsNullOrEmpty(x.OptionType)) // Exclude underlying price rows
-                    .GroupBy(x => x.StrikePrice)
-                    .OrderBy(g => g.Key)
+                // Filter CE/PE only
+                var optionRows = optionsArray
+                    .Where(x => !string.IsNullOrEmpty(x["Option_type"]?.ToString()))
                     .ToList();
+
+                // Group by strike
+                var grouped = optionRows
+                    .GroupBy(x => x["Strike_price"]?.Value<decimal>())
+                    .OrderBy(x => x.Key);
 
                 var chainData = new List<OptionChainData>();
 
-                foreach (var strikeGroup in optionsByStrike)
+                foreach (var group in grouped)
                 {
-                    var chainItem = new OptionChainData
+                    var item = new OptionChainData
                     {
-                        StrikePrice = (double)strikeGroup.Key
+                        StrikePrice = (double)group.Key
                     };
 
-                    var callOption = strikeGroup.FirstOrDefault(x => x.OptionType == "CE");
-                    if (callOption != null)
+                    foreach (var opt in group)
                     {
-                        chainItem.CallSymbol = callOption.Symbol;
-                        chainItem.CallBid = callOption.Bid;
-                        chainItem.CallAsk = callOption.Ask;
-                        chainItem.CallLTP = callOption.LTP;
-                        chainItem.CallOpenInterest = callOption.OpenInterest;
-                        chainItem.CallVolume = callOption.Volume;
+                        var type = opt["Option_type"]?.ToString();
 
-                        if (callOption.Greeks != null)
+                        var data = new
                         {
-                            chainItem.CallDelta = callOption.Greeks.Delta;
-                            chainItem.CallGamma = callOption.Greeks.Gamma;
-                            chainItem.CallTheta = callOption.Greeks.Theta;
-                            chainItem.CallVega = callOption.Greeks.Vega;
-                            chainItem.CallIV = callOption.Greeks.IV;
+                            Symbol = opt["Symbol"]?.ToString(),
+                            Bid = opt["Bid"]?.Value<decimal>() ?? 0,
+                            Ask = opt["Ask"]?.Value<decimal>() ?? 0,
+                            LTP = opt["Ltp"]?.Value<decimal>() ?? 0,
+                            OI = opt["Oi"]?.Value<long>() ?? 0,
+                            Volume = opt["Volume"]?.Value<long>() ?? 0
+                        };
+
+                        if (type == "CE")
+                        {
+                            item.CallSymbol = data.Symbol;
+                            item.CallBid = data.Bid;
+                            item.CallAsk = data.Ask;
+                            item.CallLTP = data.LTP;
+                            item.CallOpenInterest = data.OI;
+                            item.CallVolume = data.Volume;
+                        }
+                        else if (type == "PE")
+                        {
+                            item.PutSymbol = data.Symbol;
+                            item.PutBid = data.Bid;
+                            item.PutAsk = data.Ask;
+                            item.PutLTP = data.LTP;
+                            item.PutOpenInterest = data.OI;
+                            item.PutVolume = data.Volume;
                         }
                     }
 
-                    var putOption = strikeGroup.FirstOrDefault(x => x.OptionType == "PE");
-                    if (putOption != null)
-                    {
-                        chainItem.PutSymbol = putOption.Symbol;
-                        chainItem.PutBid = putOption.Bid;
-                        chainItem.PutAsk = putOption.Ask;
-                        chainItem.PutLTP = putOption.LTP;
-                        chainItem.PutOpenInterest = putOption.OpenInterest;
-                        chainItem.PutVolume = putOption.Volume;
-
-                        if (putOption.Greeks != null)
-                        {
-                            chainItem.PutDelta = putOption.Greeks.Delta;
-                            chainItem.PutGamma = putOption.Greeks.Gamma;
-                            chainItem.PutTheta = putOption.Greeks.Theta;
-                            chainItem.PutVega = putOption.Greeks.Vega;
-                            chainItem.PutIV = putOption.Greeks.IV;
-                        }
-                    }
-
-                    chainData.Add(chainItem);
+                    chainData.Add(item);
                 }
 
-                // Get VIX data
-                var vixData = rawResponse.IndiaVixData?.FirstOrDefault();
 
                 return new OptionChainResponse
                 {
                     Success = true,
                     Data = chainData,
                     ExpiryDate = expiryDate,
-                    AvailableExpiries = rawResponse.ExpiryData,
-                    VIXData = vixData,
+                    AvailableExpiries = expiryArray,
+                    VIXData = vix?.ToObject<VixData>(),
                     TotalCallOI = callOI,
                     TotalPutOI = putOI,
                     Message = "Option chain data parsed successfully"
@@ -192,6 +192,8 @@ namespace Trading.Infrastructure.Services
                 };
             }
         }
+
+       
     }
 }
 

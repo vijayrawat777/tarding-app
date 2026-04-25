@@ -74,6 +74,7 @@ if (fyersConfig != null)
     builder.Services.AddScoped<IFyersOptionChainService, FyersOptionChainService>();
 }
 builder.Services.AddScoped<IOptionStrategyEngine, OptionStrategyEngine>();
+builder.Services.AddScoped<IFundProfileService, FundService>();
 
 var app = builder.Build();
 

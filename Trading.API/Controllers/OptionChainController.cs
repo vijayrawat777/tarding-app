@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Trading.Application.DTOs.OptionChain;
 using Trading.Infrastructure.Configuration;
 using Trading.Infrastructure.Services;
@@ -20,37 +21,61 @@ namespace Trading.API.Controllers
             _fyersOptionChainService = fyersOptionChainService;
         }
         [HttpPost("option-chain")]
-        public async Task<IActionResult> GetAllOrders([FromBody] OptionChainRequestDto requestDto)
+        public async Task<IActionResult> GetAllOrders([FromBody] OptionChainRequestDto request)
         {
             //"NSE:NIFTY50-INDEX"
 
-            var response = await _fyersOptionChainService.GetOptionChainData(requestDto);
+            (OptionChainResponse chainData, decimal spotPrice) = await GetOptionChainData(request);
 
-            if (response.Success)
+            if (chainData.Success)
             {
-                return Ok(response);
+                return Ok(chainData);
             }
             else
             {
-                return BadRequest(response.Message);
+                return BadRequest(chainData.Message);
             }
         }
         [HttpPost("signal")]
         public async Task<IActionResult> GetSignal([FromBody] OptionChainRequestDto request)
         {
-            var chain = await _fyersOptionChainService.GetOptionChainData(request);
-
-            if (!chain.Success)
-                return BadRequest(chain.Message);
-
-            decimal spotPrice = await _fyersOptionChainService.GetOptionChainSpotPrice(request);
+            (OptionChainResponse chainData, decimal spotPrice) = await GetOptionChainData(request);
 
             if (spotPrice == 0)
                 return BadRequest("Spot Price not available");
 
-            var signal = _strategy.GenerateSignals(chain,spotPrice);
+            var signal = _strategy.GenerateSignals(chainData, spotPrice);
 
             return Ok(signal);
+        }
+
+        [HttpPost("trade-decision")]
+        public async Task<IActionResult> GetTradeSignal([FromBody] OptionChainRequestDto request)
+        {
+            (OptionChainResponse chainData, decimal spotPrice) = await GetOptionChainData(request);
+
+            if (spotPrice == 0)
+                return BadRequest("Spot Price not available");
+
+            var signal = _strategy.GenerateTrades(chainData, spotPrice);
+
+            return Ok(signal);
+        }
+
+        private async Task<(OptionChainResponse chainData, decimal spotPrice)> GetOptionChainData(OptionChainRequestDto request)
+        {
+            var chainData = await _fyersOptionChainService.GetOptionChainData(request);
+
+            //if (!chainData.Success)
+            //    return BadRequest(chainData.Message);
+
+            decimal spotPrice = await _fyersOptionChainService.GetOptionChainSpotPrice(request);
+
+            chainData.ATM = (decimal)chainData.Data.OrderBy(x => Math.Abs((decimal)x.StrikePrice - spotPrice)).First().StrikePrice;
+            chainData.Support = chainData.Data.OrderByDescending(x => x.PutOpenInterest).First().PutOpenInterest;
+            chainData.Resistance = chainData.Data.OrderByDescending(x => x.CallOpenInterest).First().CallOpenInterest;
+
+            return (chainData, spotPrice);
         }
     }
 }
