@@ -68,39 +68,6 @@ namespace Trading.API.Controllers
         }
 
         /// <summary>
-        /// Validate if the access token is still valid
-        /// </summary>
-        /// <param name="request">Request with access token to validate</param>
-        /// <returns>Validation result with expiration info</returns>
-        [HttpPost("validate-token")]
-        public async Task<IActionResult> ValidateToken([FromBody] ValidateTokenRequest request)
-        {
-            if (string.IsNullOrEmpty(request?.AccessToken))
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "Access token is required"
-                });
-            }
-
-            try
-            {
-                var result = await _authService.ValidateTokenAsync(request.AccessToken);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error validating token: {ex.Message}");
-                return StatusCode(500, new
-                {
-                    success = false,
-                    message = $"Error: {ex.Message}"
-                });
-            }
-        }
-
-        /// <summary>
         /// Get access token using authorization code
         /// This is called after user visits the auth code URL and gets the code
         /// </summary>
@@ -140,20 +107,6 @@ namespace Trading.API.Controllers
                     message = $"Error: {ex.Message}"
                 });
             }
-        }
-
-        /// <summary>
-        /// Health check endpoint
-        /// </summary>
-        [HttpGet("health")]
-        public IActionResult Health()
-        {
-            return Ok(new
-            {
-                status = "healthy",
-                timestamp = DateTime.UtcNow,
-                service = "Trading API - Auth Service"
-            });
         }
 
         /// <summary>

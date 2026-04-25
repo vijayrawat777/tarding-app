@@ -49,7 +49,7 @@ namespace Trading.Infrastructure.Services
                 return (decimal)stocksList[0].LimitPrice;
             }
             return (decimal)0.0;
-             
+
         }
 
         public async Task<OptionChainResponse> GetOptionChainData(OptionChainRequestDto requestDto)
@@ -91,15 +91,14 @@ namespace Trading.Infrastructure.Services
             }
         }
 
-        private OptionChainResponse ParseOptionChainResponse(JToken response, string expiryDate)
+        public OptionChainResponse ParseOptionChainResponse(JToken raw, string expiryDate)
         {
             try
             {
-                var raw = response;
-
+                // ✅ Extract arrays
                 var optionsArray = raw["optionsChainData"] as JArray;
                 var expiryArray = raw["expiryData"]?.ToObject<List<ExpiryData>>();
-                var vix = raw["indiavixData"]?.FirstOrDefault();
+                var vixToken = raw["indiavixData"]?.FirstOrDefault();
 
                 if (optionsArray == null || !optionsArray.Any())
                 {
@@ -110,19 +109,20 @@ namespace Trading.Infrastructure.Services
                     };
                 }
 
-                // Extract total OI safely
-                long callOI = raw["CallOi"]?.Value<long>() ?? 0;
-                long putOI = raw["PutOi"]?.Value<long>() ?? 0;
+                // ✅ OI comes as STRING → convert safely
+                long callOI = long.TryParse(raw["CallOi"]?.ToString(), out var c) ? c : 0;
+                long putOI = long.TryParse(raw["PutOi"]?.ToString(), out var p) ? p : 0;
 
-                // Filter CE/PE only
+                // ✅ Filter only CE/PE (skip index row)
                 var optionRows = optionsArray
                     .Where(x => !string.IsNullOrEmpty(x["Option_type"]?.ToString()))
                     .ToList();
 
-                // Group by strike
+                // ✅ Group by strike
                 var grouped = optionRows
-                    .GroupBy(x => x["Strike_price"]?.Value<decimal>())
-                    .OrderBy(x => x.Key);
+                    .GroupBy(x => x["Strike_price"]?.Value<decimal>() ?? 0)
+                    .Where(g => g.Key > 0)
+                    .OrderBy(g => g.Key);
 
                 var chainData = new List<OptionChainData>();
 
@@ -137,6 +137,8 @@ namespace Trading.Infrastructure.Services
                     {
                         var type = opt["Option_type"]?.ToString();
 
+                        var greeks = opt["Greeks"];
+
                         var data = new
                         {
                             Symbol = opt["Symbol"]?.ToString(),
@@ -144,7 +146,14 @@ namespace Trading.Infrastructure.Services
                             Ask = opt["Ask"]?.Value<decimal>() ?? 0,
                             LTP = opt["Ltp"]?.Value<decimal>() ?? 0,
                             OI = opt["Oi"]?.Value<long>() ?? 0,
-                            Volume = opt["Volume"]?.Value<long>() ?? 0
+                            Volume = opt["Volume"]?.Value<long>() ?? 0,
+
+                            // ✅ Greeks (PascalCase)
+                            Delta = greeks?["Delta"]?.Value<decimal>() ?? 0,
+                            Gamma = greeks?["Gamma"]?.Value<decimal>() ?? 0,
+                            Theta = greeks?["Theta"]?.Value<decimal>() ?? 0,
+                            Vega = greeks?["Vega"]?.Value<decimal>() ?? 0,
+                            IV = greeks?["Iv"]?.Value<decimal>() ?? 0
                         };
 
                         if (type == "CE")
@@ -155,6 +164,12 @@ namespace Trading.Infrastructure.Services
                             item.CallLTP = data.LTP;
                             item.CallOpenInterest = data.OI;
                             item.CallVolume = data.Volume;
+
+                            item.CallDelta = data.Delta;
+                            item.CallGamma = data.Gamma;
+                            item.CallTheta = data.Theta;
+                            item.CallVega = data.Vega;
+                            item.CallIV = data.IV;
                         }
                         else if (type == "PE")
                         {
@@ -164,12 +179,17 @@ namespace Trading.Infrastructure.Services
                             item.PutLTP = data.LTP;
                             item.PutOpenInterest = data.OI;
                             item.PutVolume = data.Volume;
+
+                            item.PutDelta = data.Delta;
+                            item.PutGamma = data.Gamma;
+                            item.PutTheta = data.Theta;
+                            item.PutVega = data.Vega;
+                            item.PutIV = data.IV;
                         }
                     }
 
                     chainData.Add(item);
                 }
-
 
                 return new OptionChainResponse
                 {
@@ -177,7 +197,7 @@ namespace Trading.Infrastructure.Services
                     Data = chainData,
                     ExpiryDate = expiryDate,
                     AvailableExpiries = expiryArray,
-                    VIXData = vix?.ToObject<VixData>(),
+                    VIXData = vixToken?.ToObject<VixData>(),
                     TotalCallOI = callOI,
                     TotalPutOI = putOI,
                     Message = "Option chain data parsed successfully"
@@ -192,8 +212,6 @@ namespace Trading.Infrastructure.Services
                 };
             }
         }
-
-       
     }
 }
 

@@ -36,18 +36,6 @@ namespace Trading.API.Controllers
                 return BadRequest(chainData.Message);
             }
         }
-        [HttpPost("signal")]
-        public async Task<IActionResult> GetSignal([FromBody] OptionChainRequestDto request)
-        {
-            (OptionChainResponse chainData, decimal spotPrice) = await GetOptionChainData(request);
-
-            if (spotPrice == 0)
-                return BadRequest("Spot Price not available");
-
-            var signal = _strategy.GenerateSignals(chainData, spotPrice);
-
-            return Ok(signal);
-        }
 
         [HttpPost("trade-decision")]
         public async Task<IActionResult> GetTradeSignal([FromBody] OptionChainRequestDto request)

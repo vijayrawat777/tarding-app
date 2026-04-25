@@ -80,7 +80,6 @@ namespace Trading.Application.DTOs.OptionChain
     {
         public double StrikePrice { get; set; }
 
-        // CALL
         public string CallSymbol { get; set; }
         public decimal CallBid { get; set; }
         public decimal CallAsk { get; set; }
@@ -88,13 +87,6 @@ namespace Trading.Application.DTOs.OptionChain
         public long CallOpenInterest { get; set; }
         public long CallVolume { get; set; }
 
-        public decimal? CallIV { get; set; }
-        public decimal? CallDelta { get; set; }
-        public decimal? CallGamma { get; set; }
-        public decimal? CallTheta { get; set; }
-        public decimal? CallVega { get; set; }
-
-        // PUT
         public string PutSymbol { get; set; }
         public decimal PutBid { get; set; }
         public decimal PutAsk { get; set; }
@@ -102,10 +94,17 @@ namespace Trading.Application.DTOs.OptionChain
         public long PutOpenInterest { get; set; }
         public long PutVolume { get; set; }
 
-        public decimal? PutIV { get; set; }
-        public decimal? PutDelta { get; set; }
-        public decimal? PutGamma { get; set; }
-        public decimal? PutTheta { get; set; }
-        public decimal? PutVega { get; set; }
+        // 🔥 Greeks (VERY IMPORTANT for trading engine)
+        public decimal CallDelta { get; set; }
+        public decimal CallGamma { get; set; }
+        public decimal CallTheta { get; set; }
+        public decimal CallVega { get; set; }
+        public decimal CallIV { get; set; }
+
+        public decimal PutDelta { get; set; }
+        public decimal PutGamma { get; set; }
+        public decimal PutTheta { get; set; }
+        public decimal PutVega { get; set; }
+        public decimal PutIV { get; set; }
     }
 }
