@@ -1,7 +1,5 @@
-﻿using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Trading.Application.DTOs.OptionChain;
-using Trading.Infrastructure.Configuration;
 using Trading.Infrastructure.Services;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
@@ -65,6 +63,6 @@ namespace Trading.API.Controllers
 
             return (chainData, spotPrice);
         }
+
     }
 }
-

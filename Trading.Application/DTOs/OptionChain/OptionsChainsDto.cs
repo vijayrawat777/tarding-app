@@ -78,7 +78,7 @@ namespace Trading.Application.DTOs.OptionChain
     }
     public class OptionChainData
     {
-        public double StrikePrice { get; set; }
+        public decimal StrikePrice { get; set; }
 
         public string CallSymbol { get; set; }
         public decimal CallBid { get; set; }
@@ -86,6 +86,7 @@ namespace Trading.Application.DTOs.OptionChain
         public decimal CallLTP { get; set; }
         public long CallOpenInterest { get; set; }
         public long CallVolume { get; set; }
+        public Greeks CallGreeks { get; set; }
 
         public string PutSymbol { get; set; }
         public decimal PutBid { get; set; }
@@ -93,6 +94,7 @@ namespace Trading.Application.DTOs.OptionChain
         public decimal PutLTP { get; set; }
         public long PutOpenInterest { get; set; }
         public long PutVolume { get; set; }
+        public Greeks PutGreeks { get; set; }
 
         // 🔥 Greeks (VERY IMPORTANT for trading engine)
         public decimal CallDelta { get; set; }

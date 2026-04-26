@@ -1,12 +1,5 @@
 ﻿using FyersCSharpSDK;
-using HyperSyncLib;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
-using System.Net;
-using System.Net.Http.Json;
-using System.Text;
-using System.Text.Json;
-using System.Web;
 using Trading.Application.DTOs.OptionChain;
 using Trading.Infrastructure.Configuration;
 using ExpiryData = Trading.Application.DTOs.OptionChain.ExpiryData;
@@ -95,10 +88,14 @@ namespace Trading.Infrastructure.Services
         {
             try
             {
-                // ✅ Extract arrays
+                // ✅ Extract arrays safely
                 var optionsArray = raw["optionsChainData"] as JArray;
                 var expiryArray = raw["expiryData"]?.ToObject<List<ExpiryData>>();
-                var vixToken = raw["indiavixData"]?.FirstOrDefault();
+
+                // VIX can be array OR object
+                var vixToken = raw["indiavixData"] is JArray arr
+                    ? arr.FirstOrDefault()
+                    : raw["indiavixData"];
 
                 if (optionsArray == null || !optionsArray.Any())
                 {
@@ -109,13 +106,15 @@ namespace Trading.Infrastructure.Services
                     };
                 }
 
-                // ✅ OI comes as STRING → convert safely
-                long callOI = long.TryParse(raw["CallOi"]?.ToString(), out var c) ? c : 0;
-                long putOI = long.TryParse(raw["PutOi"]?.ToString(), out var p) ? p : 0;
+                // ✅ OI safe parse (string/number both supported)
+                long callOI = GetLong(raw["CallOi"]);
+                long putOI = GetLong(raw["PutOi"]);
 
-                // ✅ Filter only CE/PE (skip index row)
+                // ✅ Filter valid options only
                 var optionRows = optionsArray
-                    .Where(x => !string.IsNullOrEmpty(x["Option_type"]?.ToString()))
+                    .Where(x =>
+                        !string.IsNullOrEmpty(x["Option_type"]?.ToString()) &&
+                        (x["Option_type"].ToString() == "CE" || x["Option_type"].ToString() == "PE"))
                     .ToList();
 
                 // ✅ Group by strike
@@ -130,65 +129,72 @@ namespace Trading.Infrastructure.Services
                 {
                     var item = new OptionChainData
                     {
-                        StrikePrice = (double)group.Key
+                        StrikePrice = group.Key
                     };
 
                     foreach (var opt in group)
                     {
                         var type = opt["Option_type"]?.ToString();
 
-                        var greeks = opt["Greeks"];
+                        // ✅ Handle Greeks (case-insensitive)
+                        var greeks = opt["Greeks"] ?? opt["greeks"];
 
-                        var data = new
-                        {
-                            Symbol = opt["Symbol"]?.ToString(),
-                            Bid = opt["Bid"]?.Value<decimal>() ?? 0,
-                            Ask = opt["Ask"]?.Value<decimal>() ?? 0,
-                            LTP = opt["Ltp"]?.Value<decimal>() ?? 0,
-                            OI = opt["Oi"]?.Value<long>() ?? 0,
-                            Volume = opt["Volume"]?.Value<long>() ?? 0,
+                        decimal GetDecimal(JToken t, string name) =>
+                            t?[name]?.Value<decimal?>()
+                            ?? t?[name.ToLower()]?.Value<decimal?>()
+                            ?? 0;
 
-                            // ✅ Greeks (PascalCase)
-                            Delta = greeks?["Delta"]?.Value<decimal>() ?? 0,
-                            Gamma = greeks?["Gamma"]?.Value<decimal>() ?? 0,
-                            Theta = greeks?["Theta"]?.Value<decimal>() ?? 0,
-                            Vega = greeks?["Vega"]?.Value<decimal>() ?? 0,
-                            IV = greeks?["Iv"]?.Value<decimal>() ?? 0
-                        };
+                        var delta = GetDecimal(greeks, "Delta");
+                        var gamma = GetDecimal(greeks, "Gamma");
+                        var theta = GetDecimal(greeks, "Theta");
+                        var vega = GetDecimal(greeks, "Vega");
+                        var iv = GetDecimal(greeks, "Iv");
+
+                        // ✅ Common data
+                        var symbol = opt["Symbol"]?.ToString();
+                        var bid = opt["Bid"]?.Value<decimal>() ?? 0;
+                        var ask = opt["Ask"]?.Value<decimal>() ?? 0;
+                        var ltp = opt["Ltp"]?.Value<decimal>() ?? 0;
+                        var oi = opt["Oi"]?.Value<long>() ?? 0;
+                        var volume = opt["Volume"]?.Value<long>() ?? 0;
 
                         if (type == "CE")
                         {
-                            item.CallSymbol = data.Symbol;
-                            item.CallBid = data.Bid;
-                            item.CallAsk = data.Ask;
-                            item.CallLTP = data.LTP;
-                            item.CallOpenInterest = data.OI;
-                            item.CallVolume = data.Volume;
+                            item.CallSymbol = symbol;
+                            item.CallBid = bid;
+                            item.CallAsk = ask;
+                            item.CallLTP = ltp;
+                            item.CallOpenInterest = oi;
+                            item.CallVolume = volume;
 
-                            item.CallDelta = data.Delta;
-                            item.CallGamma = data.Gamma;
-                            item.CallTheta = data.Theta;
-                            item.CallVega = data.Vega;
-                            item.CallIV = data.IV;
+                            item.CallDelta = delta;
+                            item.CallGamma = gamma;
+                            item.CallTheta = theta;
+                            item.CallVega = vega;
+                            item.CallIV = iv;
                         }
                         else if (type == "PE")
                         {
-                            item.PutSymbol = data.Symbol;
-                            item.PutBid = data.Bid;
-                            item.PutAsk = data.Ask;
-                            item.PutLTP = data.LTP;
-                            item.PutOpenInterest = data.OI;
-                            item.PutVolume = data.Volume;
+                            item.PutSymbol = symbol;
+                            item.PutBid = bid;
+                            item.PutAsk = ask;
+                            item.PutLTP = ltp;
+                            item.PutOpenInterest = oi;
+                            item.PutVolume = volume;
 
-                            item.PutDelta = data.Delta;
-                            item.PutGamma = data.Gamma;
-                            item.PutTheta = data.Theta;
-                            item.PutVega = data.Vega;
-                            item.PutIV = data.IV;
+                            item.PutDelta = delta;
+                            item.PutGamma = gamma;
+                            item.PutTheta = theta;
+                            item.PutVega = vega;
+                            item.PutIV = iv;
                         }
                     }
 
-                    chainData.Add(item);
+                    // ✅ Add only valid strikes (at least one side exists)
+                    if (!string.IsNullOrEmpty(item.CallSymbol) || !string.IsNullOrEmpty(item.PutSymbol))
+                    {
+                        chainData.Add(item);
+                    }
                 }
 
                 return new OptionChainResponse
@@ -212,6 +218,17 @@ namespace Trading.Infrastructure.Services
                 };
             }
         }
+
+        private long GetLong(JToken token)
+        {
+            if (token == null) return 0;
+
+            if (long.TryParse(token.ToString(), out var val))
+                return val;
+
+            return token.Value<long?>() ?? 0;
+        }
+               
     }
 }
 

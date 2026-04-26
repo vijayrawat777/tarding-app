@@ -11,110 +11,151 @@ public class OptionStrategyEngine : IOptionStrategyEngine
     public List<TradeSignal> GenerateTrades(OptionChainResponse chain, decimal spot)
     {
         var signals = new List<TradeSignal>();
+
+        if (chain?.Data == null || !chain.Data.Any())
+            return signals;
+
         var ctx = AnalyzeMarket(chain, spot);
 
-        foreach (var x in chain.Data)
+        // 🔥 Market filter (avoid bad conditions)
+        if (ctx.VIX > 25) return signals; // too volatile
+        if (ctx.VIX < 10 && ctx.Trend == "SIDEWAYS") return signals;
+
+        // 🎯 Select ONLY near ATM strikes
+        var nearStrikes = chain.Data
+            .Where(x => Math.Abs((decimal)x.StrikePrice - spot) <= 150)
+            .ToList();
+
+        foreach (var x in nearStrikes)
         {
             decimal strike = (decimal)x.StrikePrice;
-            bool nearATM = Math.Abs(strike - (decimal)ctx.ATM) <= 100;
-
-            if (!nearATM) continue;
 
             // =========================
-            // 🚀 BUY CALL (SMART)
+            // 🚀 CALL BUY LOGIC
             // =========================
-            if (ctx.Trend == "BULLISH"
-                && x.CallDelta > 0.45m && x.CallDelta < 0.65m
-                && x.CallVolume > ctx.AvgCallVolume
-                && x.CallOpenInterest > ctx.AvgCallOI)
+            if (ctx.Trend == "BULLISH" && x.CallLTP > 0)
             {
-                decimal confidence = CalculateConfidence(
-                    ctx.PCR, x.CallDelta, x.CallIV, x.CallVolume, true);
+                decimal confidence = 0;
 
-                signals.Add(new TradeSignal
+                if (ctx.PCR > 1.1m) confidence += 0.25m;
+                if (x.PutOpenInterest > x.CallOpenInterest) confidence += 0.20m;
+                if (x.PutVolume > x.CallVolume) confidence += 0.15m;
+                if (x.CallGreeks?.Delta > 0.5m) confidence += 0.15m;
+                if (Math.Abs(strike - (decimal)ctx.ATM) <= 50) confidence += 0.10m;
+
+                // Volume breakout confirmation
+                if (x.CallVolume > x.CallOpenInterest * 0.1m)
+                    confidence += 0.15m;
+
+                if (confidence >= 0.6m)
                 {
-                    Signal = "BUY_CALL",
-                    Strike = x.StrikePrice,
-                    Symbol = x.CallSymbol,
-                    Entry = x.CallLTP,
-                    StopLoss = x.CallLTP * 0.7m,
-                    Target = x.CallLTP * 1.6m,
-                    Confidence = (double)confidence,
-                    Reason = $"Bullish + Delta {x.CallDelta} + Volume Spike + OI Build"
-                });
+                    signals.Add(new TradeSignal
+                    {
+                        Signal = "BUY_CALL",
+                        Strike = x.StrikePrice,
+                        Symbol = x.CallSymbol,
+                        Entry = x.CallLTP,
+                        StopLoss = x.CallLTP * 0.70m,
+                        Target = x.CallLTP * 1.6m,
+                        Confidence = Math.Min(confidence, 1),
+                        Reason = $"Bullish | PCR:{ctx.PCR:F2} | Support:{ctx.Support}"
+                    });
+                }
             }
 
             // =========================
-            // 🔻 BUY PUT (SMART)
+            // 🔻 PUT BUY LOGIC
             // =========================
-            if (ctx.Trend == "BEARISH"
-                && x.PutDelta < -0.45m && x.PutDelta > -0.65m
-                && x.PutVolume > ctx.AvgPutVolume
-                && x.PutOpenInterest > ctx.AvgPutOI)
+            if (ctx.Trend == "BEARISH" && x.PutLTP > 0)
             {
-                decimal confidence = CalculateConfidence(
-                    ctx.PCR, x.PutDelta, x.PutIV, x.PutVolume, false);
+                decimal confidence = 0;
 
-                signals.Add(new TradeSignal
+                if (ctx.PCR < 0.9m) confidence += 0.25m;
+                if (x.CallOpenInterest > x.PutOpenInterest) confidence += 0.20m;
+                if (x.CallVolume > x.PutVolume) confidence += 0.15m;
+                if (x.PutGreeks?.Delta < -0.5m) confidence += 0.15m;
+                if (Math.Abs(strike - (decimal)ctx.ATM) <= 50) confidence += 0.10m;
+
+                if (x.PutVolume > x.PutOpenInterest * 0.1m)
+                    confidence += 0.15m;
+
+                if (confidence >= 0.6m)
                 {
-                    Signal = "BUY_PUT",
-                    Strike = x.StrikePrice,
-                    Symbol = x.PutSymbol,
-                    Entry = x.PutLTP,
-                    StopLoss = x.PutLTP * 0.7m,
-                    Target = x.PutLTP * 1.6m,
-                    Confidence = (double)confidence,
-                    Reason = $"Bearish + Delta {x.PutDelta} + Volume Spike + OI Build"
-                });
+                    signals.Add(new TradeSignal
+                    {
+                        Signal = "BUY_PUT",
+                        Strike = x.StrikePrice,
+                        Symbol = x.PutSymbol,
+                        Entry = x.PutLTP,
+                        StopLoss = x.PutLTP * 0.70m,
+                        Target = x.PutLTP * 1.6m,
+                        Confidence = Math.Min(confidence, 1),
+                        Reason = $"Bearish | PCR:{ctx.PCR:F2} | Resistance:{ctx.Resistance}"
+                    });
+                }
             }
 
             // =========================
-            // 🧱 SELL CALL (SMART)
+            // 🧱 SIDEWAYS SELL CALL
             // =========================
-            if (ctx.Trend == "SIDEWAYS"
-                && strike > (decimal)ctx.ATM
-                && x.CallIV < ctx.AvgIV
-                && x.CallDelta < 0.3m)
+            if (ctx.Trend == "SIDEWAYS" && strike > (decimal)ctx.ATM && x.CallLTP > 0)
             {
-                signals.Add(new TradeSignal
+                decimal confidence = 0;
+
+                if (ctx.PCR >= 0.9m && ctx.PCR <= 1.1m) confidence += 0.3m;
+                if (x.CallOpenInterest > x.PutOpenInterest) confidence += 0.25m;
+                if (x.CallVolume < x.PutVolume) confidence += 0.15m;
+
+                if (confidence >= 0.6m)
                 {
-                    Signal = "SELL_CALL",
-                    Strike = x.StrikePrice,
-                    Symbol = x.CallSymbol,
-                    Entry = x.CallLTP,
-                    StopLoss = x.CallLTP * 1.25m,
-                    Target = x.CallLTP * 0.5m,
-                    Confidence = (double)0.7m,
-                    Reason = "Low IV + OTM Call + Range Market"
-                });
+                    signals.Add(new TradeSignal
+                    {
+                        Signal = "SELL_CALL",
+                        Strike = x.StrikePrice,
+                        Symbol = x.CallSymbol,
+                        Entry = x.CallLTP,
+                        StopLoss = x.CallLTP * 1.30m,
+                        Target = x.CallLTP * 0.50m,
+                        Confidence = Math.Min(confidence, 1),
+                        Reason = "Range-bound resistance"
+                    });
+                }
             }
 
             // =========================
-            // 🧱 SELL PUT (SMART)
+            // 🧱 SIDEWAYS SELL PUT
             // =========================
-            if (ctx.Trend == "SIDEWAYS"
-                && strike < (decimal)ctx.ATM
-                && x.PutIV < ctx.AvgIV
-                && x.PutDelta > -0.3m)
+            if (ctx.Trend == "SIDEWAYS" && strike < (decimal)ctx.ATM && x.PutLTP > 0)
             {
-                signals.Add(new TradeSignal
+                decimal confidence = 0;
+
+                if (ctx.PCR >= 0.9m && ctx.PCR <= 1.1m) confidence += 0.3m;
+                if (x.PutOpenInterest > x.CallOpenInterest) confidence += 0.25m;
+                if (x.PutVolume < x.CallVolume) confidence += 0.15m;
+
+                if (confidence >= 0.6m)
                 {
-                    Signal = "SELL_PUT",
-                    Strike = x.StrikePrice,
-                    Symbol = x.PutSymbol,
-                    Entry = x.PutLTP,
-                    StopLoss = x.PutLTP * 1.25m,
-                    Target = x.PutLTP * 0.5m,
-                    Confidence = (double)0.7m,
-                    Reason = "Low IV + OTM Put + Range Market"
-                });
+                    signals.Add(new TradeSignal
+                    {
+                        Signal = "SELL_PUT",
+                        Strike = x.StrikePrice,
+                        Symbol = x.PutSymbol,
+                        Entry = x.PutLTP,
+                        StopLoss = x.PutLTP * 1.30m,
+                        Target = x.PutLTP * 0.50m,
+                        Confidence = Math.Min(confidence, 1),
+                        Reason = "Range-bound support"
+                    });
+                }
             }
         }
 
+        // 🔥 FINAL FILTER (best trades only)
         return signals
-            .Where(x => x.Confidence > (double)0.6m)
+            .Where(x => x.Confidence >= 0.6m)
             .OrderByDescending(x => x.Confidence)
-            .Take(3)
+            .ThenByDescending(x => x.Entry)
+            .Take(2)
             .ToList();
     }
     public MarketContext AnalyzeMarket(OptionChainResponse chain, decimal spot)
@@ -122,74 +163,28 @@ public class OptionStrategyEngine : IOptionStrategyEngine
         var context = new MarketContext();
 
         context.Spot = spot;
-
         context.PCR = chain.TotalCallOI == 0 ? 0 :
-            (decimal)chain.TotalPutOI / chain.TotalCallOI;
+                      (decimal)chain.TotalPutOI / chain.TotalCallOI;
 
-        var atm = chain.Data
-            .OrderBy(x => Math.Abs((decimal)x.StrikePrice - spot))
-            .First();
-
+        var atm = chain.Data.OrderBy(x => Math.Abs((decimal)x.StrikePrice - spot)).First();
         context.ATM = atm.StrikePrice;
 
-        // Strong Support / Resistance
-        context.Support = chain.Data
-            .OrderByDescending(x => x.PutOpenInterest)
-            .First().StrikePrice;
+        var support = chain.Data.OrderByDescending(x => x.PutOpenInterest).First();
+        var resistance = chain.Data.OrderByDescending(x => x.CallOpenInterest).First();
 
-        context.Resistance = chain.Data
-            .OrderByDescending(x => x.CallOpenInterest)
-            .First().StrikePrice;
+        context.Support = support.StrikePrice;
+        context.Resistance = resistance.StrikePrice;
 
-        // Averages (IMPORTANT)
-        context.AvgCallVolume = chain.Data.Average(x => x.CallVolume);
-        context.AvgPutVolume = chain.Data.Average(x => x.PutVolume);
+        context.VIX = chain.VIXData?.Ltp ?? 15;
 
-        context.AvgCallOI = chain.Data.Average(x => x.CallOpenInterest);
-        context.AvgPutOI = chain.Data.Average(x => x.PutOpenInterest);
-
-        context.AvgIV = chain.Data
-            .Where(x => x.CallIV > 0)
-            .Average(x => x.CallIV);
-
-        // 🔥 Smart Trend Logic
-        if (context.PCR > 1.2m && spot > (decimal)context.Support)
+        // 🔥 Trend Logic (Improved)
+        if (context.PCR > 1.15m)
             context.Trend = "BULLISH";
-        else if (context.PCR < 0.8m && spot < (decimal)context.Resistance)
+        else if (context.PCR < 0.85m)
             context.Trend = "BEARISH";
         else
             context.Trend = "SIDEWAYS";
 
         return context;
-    }
-
-
-
-    //    📊 Confidence Score Interpretation(IMPORTANT)
-    //Confidence        Meaning                  Action
-    //-------------------------------------------------------------
-    //0.80 – 1.00	    🔥 Very Strong Setup     Take trade(priority)
-    //0.70 – 0.79	    ✅ Good Setup            Trade allowed
-    //0.60 – 0.69	    ⚠️ Medium Trade          only with confirmation
-    //0.50 – 0.59	    ❌ Weak                  Avoid
-    //< 0.50	        🚫 Bad Setup             Ignore completely
-    private decimal CalculateConfidence(decimal pcr, decimal delta, decimal iv, long volume, bool isCall)
-    {
-        decimal score = 0;
-
-        // PCR weight
-        if (isCall && pcr > 1.1m) score += 0.25m;
-        if (!isCall && pcr < 0.9m) score += 0.25m;
-
-        // Delta weight
-        if (Math.Abs(delta) > 0.5m) score += 0.25m;
-
-        // IV weight (avoid low IV traps)
-        if (iv > 15) score += 0.2m;
-
-        // Volume weight
-        if (volume > 1000000) score += 0.3m;
-
-        return Math.Min(score, 1.0m);
     }
 }

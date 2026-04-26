@@ -11,15 +11,16 @@ namespace Trading.Application.DTOs.OptionChain
         public decimal Spot { get; set; }
         public decimal PCR { get; set; }
 
-        public double ATM { get; set; }
-        public double Support { get; set; }
-        public double Resistance { get; set; }
+        public decimal ATM { get; set; }
+        public decimal Support { get; set; }
+        public decimal Resistance { get; set; }
 
         public string Trend { get; set; } // BULLISH / BEARISH / SIDEWAYS
-        public double AvgCallVolume { get; set; }
-        public double AvgPutVolume { get; set; }
-        public double AvgCallOI { get; set; }
-        public double AvgPutOI { get; set; }
+        public decimal AvgCallVolume { get; set; }
+        public decimal AvgPutVolume { get; set; }
+        public decimal AvgCallOI { get; set; }
+        public decimal AvgPutOI { get; set; }
         public decimal AvgIV { get; set; }
+        public decimal VIX { get; set; }
     }
 }
