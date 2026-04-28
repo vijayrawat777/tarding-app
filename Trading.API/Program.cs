@@ -1,6 +1,7 @@
 ﻿using Microsoft.OpenApi.Models;
 using Trading.Infrastructure.Configuration;
 using Trading.Infrastructure.Services;
+using Trading.Infrastructure.Services.Swing;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -75,6 +76,7 @@ if (fyersConfig != null)
 }
 builder.Services.AddScoped<IOptionStrategyEngine, OptionStrategyEngine>();
 builder.Services.AddScoped<IFundProfileService, FundService>();
+builder.Services.AddScoped<IFyersService, FyersService>();
 
 var app = builder.Build();
 
