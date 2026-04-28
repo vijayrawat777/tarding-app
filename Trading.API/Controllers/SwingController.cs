@@ -27,5 +27,16 @@ namespace Trading.API.Controllers
 
             return Ok(signal);
         }
+
+        [HttpPost("backtest")]
+        public async Task<IActionResult> Backtest([FromBody] StockHistoryModel model, string accessToken)
+        {
+            var candles = await _fyers.GetHistoricalData(accessToken, model);
+
+            var engine = new BacktestEngine();
+            var result = engine.Run(model.Symbol, candles);
+
+            return Ok(result);
+        }
     }
 }
